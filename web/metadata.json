@@ -1,0 +1,6 @@
+{
+  "name": "Tickrr Sports Analysis",
+  "description": "A high-fidelity sports analytics terminal inspired by Bloomberg Terminal, featuring real-time telemetry, athletic market tracking, interactive charting, and Gemini-powered smart intelligence reports.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

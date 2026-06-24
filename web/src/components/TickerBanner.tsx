@@ -1,0 +1,100 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { useState, useEffect } from "react";
+import { SportsEntity } from "../types";
+
+interface TickerBannerProps {
+  entities: SportsEntity[];
+  onSelectEntity: (entity: SportsEntity) => void;
+}
+
+export default function TickerBanner({ entities, onSelectEntity }: TickerBannerProps) {
+  const [liveEntities, setLiveEntities] = useState<SportsEntity[]>(entities);
+
+  // Simulate ultra-fast real-time sports feeds fluctuating slightly
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLiveEntities((prev) =>
+        prev.map((item) => {
+          // 20% chance to fluctuate a value slightly
+          if (Math.random() > 0.2) return item;
+          
+          const fluctuation = (Math.random() - 0.5) * 0.15; // tiny change
+          const newValue = Number((item.value + fluctuation).toFixed(1));
+          const newChange = Number((item.change + fluctuation * 0.5).toFixed(2));
+
+          return {
+            ...item,
+            value: Math.max(10, Math.min(150, newValue)),
+            change: newChange,
+          };
+        })
+      );
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Double list to create seamless infinite scrolling marquee
+  const doubleList = [...liveEntities, ...liveEntities, ...liveEntities];
+
+  return (
+    <div 
+      className="w-full bg-[#0B0E11] border-y border-[#2D333B] h-10 overflow-hidden flex items-center relative z-20"
+      id="ticker-banner-bar"
+    >
+      {/* Scroll indicator/label */}
+      <div className="absolute left-0 top-0 bottom-0 bg-[#0B0E11] border-r border-[#2D333B] text-[10px] font-mono px-4 flex items-center gap-1.5 text-[#FF9900] font-bold z-10 select-none">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#00FF66] led-blink" />
+        TICKER FEED
+      </div>
+
+      {/* Marquee Wrapper */}
+      <div className="w-full flex pl-36">
+        <div 
+          className="flex whitespace-nowrap animate-[marquee_50s_linear_infinite] hover:[animation-play-state:paused] gap-8 py-1.5"
+          style={{
+            animation: "marquee 45s linear infinite"
+          }}
+        >
+          {doubleList.map((item, index) => {
+            const isPositive = item.change >= 0;
+            return (
+              <button
+                key={`${item.id}-${index}`}
+                onClick={() => onSelectEntity(item)}
+                className="flex items-center gap-2 font-mono text-[11px] cursor-pointer hover:bg-[#1C2128] px-2 py-0.5 rounded transition duration-150 select-none text-[#D1D4DC]"
+              >
+                <span className="text-[#D1D4DC]/60 font-medium">{item.ticker}</span>
+                <span className="text-white font-bold">{item.value.toFixed(1)}</span>
+                <span 
+                  className={`font-semibold flex items-center gap-0.5 ${
+                    isPositive ? "text-[#00FF66]" : "text-[#FF3B30]"
+                  }`}
+                >
+                  <span>{isPositive ? "▲" : "▼"}</span>
+                  <span>{Math.abs(item.change).toFixed(2)}%</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Keyframe simulation in CSS inside style block to avoid adding separate stylesheet */}
+      <style>{`
+        @keyframes marquee {
+          0% {
+            transform: translate3d(0, 0, 0);
+          }
+          100% {
+            transform: translate3d(-33.3333%, 0, 0);
+          }
+        }
+      `}</style>
+    </div>
+  );
+}

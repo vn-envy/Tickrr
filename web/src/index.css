@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+/* Custom styles for Bloomberg Terminal + Frosted Glass aesthetic */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #050608;
+}
+::-webkit-scrollbar-thumb {
+  background: #2d333b;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3d444d;
+}
+
+.terminal-glow-green {
+  text-shadow: 0 0 8px rgba(0, 255, 102, 0.4);
+}
+
+.terminal-glow-orange {
+  text-shadow: 0 0 8px rgba(255, 153, 0, 0.4);
+}
+
+.glass-panel {
+  background: rgba(11, 14, 17, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid #2d333b;
+}
+
+.glass-panel-light {
+  background: rgba(28, 33, 40, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(45, 51, 59, 0.6);
+}
+
+/* LED blinking effect */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.led-blink {
+  animation: blink 2s infinite;
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+.scanline-overlay::after {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.12) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+  background-size: 100% 3px, 3px 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+
