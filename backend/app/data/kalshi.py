@@ -10,11 +10,17 @@ prices in the `*_dollars` fields (already 0..1 = probability).
 """
 from __future__ import annotations
 
+import time
+
 import httpx
 
 from app.config import settings
 
 WC_WINNER_SERIES = "KXMENWORLDCUP"
+
+# Process cache so a Kalshi blip never empties the cross-venue board (last-known-good).
+_CACHE: dict = {"ts": 0.0, "probs": {}}
+_CACHE_TTL_S = 30.0
 
 
 def _to_float(x) -> float | None:
@@ -36,9 +42,12 @@ class KalshiClient:
 
     async def get_winner_probs(self, series: str = WC_WINNER_SERIES) -> dict[str, dict]:
         """Map normalized team -> {prob, ticker, url} from Kalshi's WC winner market.
-        Best-effort: returns {} on any failure so Polymarket-only still works."""
+        Best-effort: serves a short cache and falls back to last-known-good on failure."""
+        now = time.time()
+        if _CACHE["probs"] and now - _CACHE["ts"] < _CACHE_TTL_S:
+            return _CACHE["probs"]
         markets: list = []
-        for _ in range(2):  # best-effort with a single retry (Kalshi can be flaky)
+        for _ in range(3):  # best-effort with retries (Kalshi can be flaky)
             try:
                 async with httpx.AsyncClient(timeout=self.timeout) as client:
                     resp = await client.get(
@@ -51,7 +60,7 @@ class KalshiClient:
             except Exception:
                 markets = []
         if not markets:
-            return {}
+            return _CACHE["probs"]  # last-known-good (possibly stale) beats nothing
 
         out: dict[str, dict] = {}
         for m in markets:
@@ -72,4 +81,6 @@ class KalshiClient:
                 "ticker": m.get("ticker"),
                 "url": f"https://kalshi.com/markets/{series.lower()}",
             }
+        _CACHE["ts"] = now
+        _CACHE["probs"] = out
         return out
