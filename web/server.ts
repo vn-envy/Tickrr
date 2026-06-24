@@ -79,6 +79,29 @@ async function gatherGroundedNews(ai: GoogleGenAI, ctx: MarketContext): Promise<
   }
 }
 
+// ---- Deliberation Room: two grounded football experts (premium) ----------------------------
+
+const DELIB_SYSTEM =
+  "You are an analyst in Tickrr's Deliberation Room. Respond with verifiable football facts ONLY — recent form, results, xG, goals, injuries, suspensions, lineups, head-to-head, historical record. Cite specifics. Never give betting, wagering, or financial advice and never tell the user to bet. Be concise (3-5 sentences) and precise.";
+
+const ADVOCATE_PERSONA =
+  "ROLE: THE ADVOCATE. You argue IN FAVOUR of the user's stance, building the strongest evidence-based case using only verifiable facts. Persuasive, but you never invent data.";
+
+const SKEPTIC_PERSONA =
+  "ROLE: THE SKEPTIC (devil's advocate). You pressure-test the stance and correct for gaps between optimism and reality, using only verifiable facts. Identify where the case overreaches and the key risks. End your reply with a line beginning 'REALITY CHECK:' giving one calibrated, fact-based bottom line.";
+
+async function groundedExpert(ai: GoogleGenAI, persona: string, content: string): Promise<{ text: string; sources: string[] }> {
+  const resp: any = await ai.models.generateContent({
+    model: MODEL,
+    contents: content,
+    config: { systemInstruction: `${DELIB_SYSTEM}\n\n${persona}`, tools: [{ googleSearch: {} }] },
+  });
+  const text: string = resp.text || "";
+  const chunks: any[] = resp.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+  const sources = chunks.map((c) => c?.web?.uri).filter(Boolean).slice(0, 4);
+  return { text, sources };
+}
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -147,6 +170,28 @@ Produce a prediction-market intelligence report on this market. Explain what the
     }
   });
 
+  // Premium: two grounded football experts deliberate a user's stance (intel only).
+  app.post("/api/deliberate", async (req, res) => {
+    const { entity, stance } = req.body || {};
+    if (!stance) return res.status(400).json({ error: "A stance or question is required." });
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) return res.json(getMockDeliberation(entity, stance));
+
+    try {
+      const ai = new GoogleGenAI({ apiKey, httpOptions: { headers: { "User-Agent": "aistudio-build" } } });
+      const subject = entity || "the user's team/player";
+      const advocate = await groundedExpert(ai, ADVOCATE_PERSONA,
+        `Subject: ${subject}. User's stance: "${stance}". Make the strongest fact-based case FOR this stance.`);
+      const skeptic = await groundedExpert(ai, SKEPTIC_PERSONA,
+        `Subject: ${subject}. User's stance: "${stance}". THE ADVOCATE argued: "${advocate.text}". Now pressure-test it and correct for reality gaps, with facts.`);
+      res.json({ advocate, skeptic });
+    } catch (error: any) {
+      console.error("[TICKRR] Deliberation failed:", error);
+      res.status(500).json({ error: "Deliberation failed.", details: error?.message || String(error), mocked: true, data: getMockDeliberation(entity, stance) });
+    }
+  });
+
   // Vite integration
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
@@ -205,6 +250,20 @@ function getMockInsights(ctx: MarketContext) {
       liq < 40 ? "Wait for deeper liquidity before treating the price as reliable." : "Track the spread for pre-match widening.",
       "Compare against Kalshi once cross-market is live to spot divergence.",
     ],
+  };
+}
+
+function getMockDeliberation(entity: string | undefined, stance: string) {
+  const subj = entity || "your pick";
+  return {
+    advocate: {
+      text: `THE ADVOCATE: I'll back your read on ${subj} — "${stance}". On the supporting evidence, recent results and underlying numbers trend your way and the matchup profile is favourable. [Connect GEMINI_API_KEY for live, Google-Search-grounded facts.]`,
+      sources: [],
+    },
+    skeptic: {
+      text: `THE SKEPTIC: Not so fast. The optimism outruns the sample — form is noisy, key-player availability is uncertain, and the base rate for this claim is lower than it feels. REALITY CHECK: plausible but unproven — watch the next result and the confirmed lineup before trusting it.`,
+      sources: [],
+    },
   };
 }
 

@@ -13,12 +13,14 @@ import TickerBanner from "./components/TickerBanner";
 import MarketWatch from "./components/MarketWatch";
 import TelemetryChart from "./components/TelemetryChart";
 import IntelligencePanel from "./components/IntelligencePanel";
-import { Globe, RefreshCw, Layers } from "lucide-react";
+import DeliberationRoom from "./components/DeliberationRoom";
+import { Globe, RefreshCw, Layers, Lock } from "lucide-react";
 
 export default function App() {
   const [entities, setEntities] = useState<SportsEntity[]>(INITIAL_SPORTS_ENTITIES);
   const [activeEntity, setActiveEntity] = useState<SportsEntity>(INITIAL_SPORTS_ENTITIES[0]);
   const [sportFilter, setSportFilter] = useState<string | null>(null);
+  const [delibOpen, setDelibOpen] = useState(false);
 
   // Load live World Cup market intelligence from the Tickrr backend (falls back to seed data).
   useEffect(() => {
@@ -93,6 +95,14 @@ export default function App() {
 
         {/* Right stats indicators */}
         <div className="flex items-center gap-5 font-mono text-[10px] text-[#D1D4DC]/40">
+          <button
+            onClick={() => setDelibOpen(true)}
+            className="cursor-pointer flex items-center gap-1.5 bg-[#00FF66]/10 hover:bg-[#00FF66]/20 border border-[#00FF66]/40 text-[#00FF66] text-[10px] font-bold px-2.5 py-1 rounded transition terminal-glow-green"
+          >
+            <Lock className="w-3 h-3" />
+            DELIBERATION ROOM
+            <span className="text-[8px] bg-[#00FF66] text-black px-1 rounded font-black">PRO</span>
+          </button>
           <div className="hidden md:flex flex-col text-right">
             <span className="text-[#D1D4DC]/30 font-bold uppercase">WORLD CUP · LIVE</span>
             <span className="text-[#00FF66] font-black font-mono">14,924.81 ▲ +1.14%</span>
@@ -177,6 +187,8 @@ export default function App() {
           <span className="text-[#D1D4DC]/20 italic">v2.4.1</span>
         </div>
       </footer>
+
+      <DeliberationRoom entity={activeEntity} open={delibOpen} onClose={() => setDelibOpen(false)} />
     </div>
   );
 }
