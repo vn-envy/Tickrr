@@ -33,6 +33,7 @@ interface MarketSnapshot {
   group_title?: string | null;
   one_week_change?: number | null;
   event_title?: string | null;
+  clob_token_id?: string | null;
 }
 
 interface DislocationT {
@@ -106,6 +107,7 @@ export function intelToEntity(mi: MarketIntel): SportsEntity {
     volume: m.volume ?? undefined,
     liquidity: m.liquidity ?? undefined,
     dislocation: mi.dislocation ?? undefined,
+    clobTokenId: m.clob_token_id ?? undefined,
   };
 }
 
@@ -116,4 +118,16 @@ export async function fetchMarkets(query = "World Cup", limit = 40): Promise<Spo
   if (!res.ok) throw new Error(`/api/markets responded ${res.status}`);
   const data: MarketIntel[] = await res.json();
   return data.map(intelToEntity);
+}
+
+/** Implied-probability time series for a market's Yes token (Polymarket CLOB). */
+export async function fetchHistory(token: string, interval = "1m"): Promise<{ t: number; p: number }[]> {
+  try {
+    const res = await fetch(`${API_BASE}/api/history?token=${encodeURIComponent(token)}&interval=${interval}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data.history) ? data.history : [];
+  } catch {
+    return [];
+  }
 }

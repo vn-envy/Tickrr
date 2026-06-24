@@ -32,6 +32,7 @@ class MarketSnapshot(BaseModel):
     group_title: str | None = None      # leg/team label, e.g. "Spain"
     one_week_change: float | None = None  # momentum signal for dislocation detection
     event_title: str | None = None
+    clob_token_id: str | None = None     # Yes-token id, for CLOB price history
 
 
 class FairValue(BaseModel):

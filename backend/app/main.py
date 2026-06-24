@@ -80,3 +80,10 @@ async def list_dislocations(
     flagged = [m for m in intel if m.dislocation is not None]
     flagged.sort(key=lambda m: m.dislocation.severity if m.dislocation else 0.0, reverse=True)
     return flagged
+
+
+@app.get("/api/history")
+async def price_history(token: str, interval: str = "1m", fidelity: int = 1440):
+    """Implied-probability time series for a market's Yes token (Polymarket CLOB)."""
+    points = await client.get_price_history(token, interval=interval, fidelity=fidelity)
+    return {"history": points}

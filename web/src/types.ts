@@ -39,6 +39,7 @@ export interface SportsEntity {
     action: string;
     rationale: string;
   };
+  clobTokenId?: string;
 }
 
 export interface MetricDetail {
