@@ -14,6 +14,7 @@ import MarketWatch from "./components/MarketWatch";
 import TelemetryChart from "./components/TelemetryChart";
 import IntelligencePanel from "./components/IntelligencePanel";
 import DeliberationRoom from "./components/DeliberationRoom";
+import DislocationBoard from "./components/DislocationBoard";
 import { Globe, RefreshCw, Layers, Lock } from "lucide-react";
 
 export default function App() {
@@ -139,6 +140,9 @@ export default function App() {
         activeSportFilter={sportFilter}
         onCustomAdd={handleCustomAdd}
       />
+
+      {/* Dislocation Radar (home board) */}
+      <DislocationBoard entities={entities} onSelect={(e) => setActiveEntity(e)} />
 
       {/* Main Terminal Workspace Layout */}
       <main className="flex-1 p-3 md:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 z-20 overflow-hidden">

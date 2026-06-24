@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     # Data sources (read-only, public)
     polymarket_gamma_url: str = "https://gamma-api.polymarket.com"
     polymarket_clob_url: str = "https://clob.polymarket.com"
+    kalshi_api_url: str = "https://api.elections.kalshi.com/trade-api/v2"
 
     # Google Cloud / Gemini (Vertex AI)
     google_cloud_project: str = ""

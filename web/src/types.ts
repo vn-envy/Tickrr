@@ -38,6 +38,13 @@ export interface SportsEntity {
     direction: string;
     action: string;
     rationale: string;
+    link?: string;
+  };
+  divergence?: {
+    polymarket: number;
+    kalshi: number;
+    gapPP: number;
+    url?: string;
   };
   clobTokenId?: string;
 }

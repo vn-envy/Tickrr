@@ -45,11 +45,19 @@ interface DislocationT {
   rationale: string;
 }
 
+interface DivergenceT {
+  polymarket: number;
+  kalshi: number;
+  gap_pp: number;
+  url?: string | null;
+}
+
 interface MarketIntel {
   market: MarketSnapshot;
   primary_outcome: { label: string; price: number };
   fair_value: FairValue;
   dislocation?: DislocationT | null;
+  divergence?: DivergenceT | null;
 }
 
 function tickerFrom(name: string): string {
@@ -107,6 +115,14 @@ export function intelToEntity(mi: MarketIntel): SportsEntity {
     volume: m.volume ?? undefined,
     liquidity: m.liquidity ?? undefined,
     dislocation: mi.dislocation ?? undefined,
+    divergence: mi.divergence
+      ? {
+          polymarket: mi.divergence.polymarket,
+          kalshi: mi.divergence.kalshi,
+          gapPP: mi.divergence.gap_pp,
+          url: mi.divergence.url ?? undefined,
+        }
+      : undefined,
     clobTokenId: m.clob_token_id ?? undefined,
   };
 }

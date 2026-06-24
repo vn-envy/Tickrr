@@ -13,8 +13,9 @@ from fastapi.responses import RedirectResponse
 from app import __version__
 from app.config import settings
 from app.data.polymarket import PolymarketClient
+from app.data.kalshi import KalshiClient, normalize_team
 from app.engine import fair_value, dislocation
-from app.models import MarketIntel, MarketSnapshot, Outcome
+from app.models import MarketIntel, MarketSnapshot, Outcome, Divergence
 
 app = FastAPI(
     title="Tickrr API",
@@ -31,11 +32,19 @@ app.add_middleware(
 )
 
 client = PolymarketClient()
+kalshi_client = KalshiClient()
 
 
-def _intel(s: MarketSnapshot) -> MarketIntel:
-    """Attach the deterministic fair-value read to a snapshot. The primary outcome is the
-    first listed (e.g. 'Yes' on a team-to-win market), which is what bid/ask reference."""
+def _is_winner_event(s: MarketSnapshot) -> bool:
+    """Only the 'World Cup Winner' event maps 1:1 to Kalshi's winner market — exclude
+    advance/group/golden-boot events so we don't compare a win-price to a qualify-price."""
+    et = (s.event_title or "").lower()
+    return "winner" in et and "boot" not in et
+
+
+def _intel(s: MarketSnapshot, kalshi_probs: dict | None = None) -> MarketIntel:
+    """Attach the deterministic fair-value read (plus any cross-venue divergence) to a
+    snapshot. The primary outcome is the first listed (e.g. 'Yes' on a team-to-win market)."""
     primary = s.outcomes[0] if s.outcomes else Outcome(label="Yes", price=s.last_price or 0.0)
     fv = fair_value.assess(
         primary.price,
@@ -45,8 +54,20 @@ def _intel(s: MarketSnapshot) -> MarketIntel:
         liquidity=s.liquidity,
         volume=s.volume,
     )
-    disloc = dislocation.detect(s, fv)
-    return MarketIntel(market=s, primary_outcome=primary, fair_value=fv, dislocation=disloc)
+    kp = ku = None
+    div = None
+    if kalshi_probs and _is_winner_event(s):
+        entry = kalshi_probs.get(normalize_team(s.group_title or s.question))
+        if entry and entry.get("prob") is not None:
+            kp, ku = entry["prob"], entry.get("url")
+            div = Divergence(
+                polymarket=round(fv.implied_prob * 100, 1),
+                kalshi=round(kp * 100, 1),
+                gap_pp=round((fv.implied_prob - kp) * 100, 1),
+                url=ku,
+            )
+    disloc = dislocation.detect(s, fv, kalshi_prob=kp, kalshi_url=ku)
+    return MarketIntel(market=s, primary_outcome=primary, fair_value=fv, dislocation=disloc, divergence=div)
 
 
 @app.get("/", include_in_schema=False)
@@ -66,7 +87,8 @@ async def list_markets(
 ):
     """Live market intelligence: matching markets + each one's fair-value read."""
     snapshots = await client.search_markets(query=query, limit=limit)
-    return [_intel(s) for s in snapshots]
+    kalshi_probs = await kalshi_client.get_winner_probs() if "world cup" in query.lower() else {}
+    return [_intel(s, kalshi_probs) for s in snapshots]
 
 
 @app.get("/api/dislocations", response_model=list[MarketIntel])
@@ -76,7 +98,8 @@ async def list_dislocations(
 ):
     """The home board: only markets currently flagged with a dislocation, most severe first."""
     snapshots = await client.search_markets(query=query, limit=limit)
-    intel = [_intel(s) for s in snapshots]
+    kalshi_probs = await kalshi_client.get_winner_probs() if "world cup" in query.lower() else {}
+    intel = [_intel(s, kalshi_probs) for s in snapshots]
     flagged = [m for m in intel if m.dislocation is not None]
     flagged.sort(key=lambda m: m.dislocation.severity if m.dislocation else 0.0, reverse=True)
     return flagged

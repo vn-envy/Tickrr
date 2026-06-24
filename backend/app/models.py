@@ -55,6 +55,14 @@ class Dislocation(BaseModel):
     direction: str   # "up" | "down" | "neutral"
     action: str      # "watch" | "research" | "avoid"
     rationale: str
+    link: str | None = None  # attributed source (e.g. Kalshi) for cross-venue signals
+
+
+class Divergence(BaseModel):
+    polymarket: float  # implied prob %
+    kalshi: float      # implied prob %
+    gap_pp: float      # polymarket - kalshi, in percentage points
+    url: str | None = None
 
 
 class MarketIntel(BaseModel):
@@ -62,3 +70,4 @@ class MarketIntel(BaseModel):
     primary_outcome: Outcome
     fair_value: FairValue
     dislocation: Dislocation | None = None
+    divergence: Divergence | None = None

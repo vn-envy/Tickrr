@@ -19,6 +19,7 @@ MOMENTUM_MIN = 0.02
 OVERREACTION_MIN = 0.04
 EXTREME_HI = 0.85
 EXTREME_LO = 0.15
+DIVERGENCE_MIN = 0.01
 
 
 def _norm_change(x: float | None) -> float:
@@ -30,10 +31,25 @@ def _norm_change(x: float | None) -> float:
     return m
 
 
-def detect(market: MarketSnapshot, fv: FairValue) -> Dislocation | None:
+def detect(market: MarketSnapshot, fv: FairValue, kalshi_prob: float | None = None,
+           kalshi_url: str | None = None) -> Dislocation | None:
     p = fv.implied_prob
     m = _norm_change(market.one_week_change)
     candidates: list[Dislocation] = []
+
+    # 0. Cross-venue divergence (marquee signal): Polymarket vs Kalshi.
+    if kalshi_prob is not None:
+        d = p - kalshi_prob
+        if abs(d) >= DIVERGENCE_MIN:
+            candidates.append(Dislocation(
+                kind="divergence",
+                label=f"Kalshi gap {d * 100:+.1f}pp",
+                severity=round(min(1.0, 0.55 + abs(d) / 0.10), 2),
+                direction="up" if d > 0 else "down",
+                action="research",
+                rationale=f"Polymarket {p * 100:.1f}% vs Kalshi {kalshi_prob * 100:.1f}% — a {abs(d) * 100:.1f}pp cross-venue gap. Compare both books before trusting either price.",
+                link=kalshi_url,
+            ))
 
     # 1. Momentum / repricing
     if abs(m) >= MOMENTUM_MIN:
