@@ -47,7 +47,17 @@ class FairValue(BaseModel):
     price_source: str = "mid"  # "mid" | "last"
 
 
+class Dislocation(BaseModel):
+    kind: str        # "momentum" | "liquidity_trap" | "overreaction"
+    label: str       # short display label
+    severity: float  # 0..1
+    direction: str   # "up" | "down" | "neutral"
+    action: str      # "watch" | "research" | "avoid"
+    rationale: str
+
+
 class MarketIntel(BaseModel):
     market: MarketSnapshot
     primary_outcome: Outcome
     fair_value: FairValue
+    dislocation: Dislocation | None = None

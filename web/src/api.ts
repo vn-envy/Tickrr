@@ -35,10 +35,20 @@ interface MarketSnapshot {
   event_title?: string | null;
 }
 
+interface DislocationT {
+  kind: string;
+  label: string;
+  severity: number;
+  direction: string;
+  action: string;
+  rationale: string;
+}
+
 interface MarketIntel {
   market: MarketSnapshot;
   primary_outcome: { label: string; price: number };
   fair_value: FairValue;
+  dislocation?: DislocationT | null;
 }
 
 function tickerFrom(name: string): string {
@@ -95,6 +105,7 @@ export function intelToEntity(mi: MarketIntel): SportsEntity {
     url: m.url || undefined,
     volume: m.volume ?? undefined,
     liquidity: m.liquidity ?? undefined,
+    dislocation: mi.dislocation ?? undefined,
   };
 }
 

@@ -31,6 +31,14 @@ export interface SportsEntity {
   url?: string;
   volume?: number;
   liquidity?: number;
+  dislocation?: {
+    kind: string;
+    label: string;
+    severity: number;
+    direction: string;
+    action: string;
+    rationale: string;
+  };
 }
 
 export interface MetricDetail {

@@ -150,6 +150,20 @@ export default function MarketWatch({
                       <span className="text-[10px] text-[#D1D4DC]/60 font-sans tracking-tight">
                         {item.name}
                       </span>
+                      {item.dislocation && (
+                        <span
+                          title={item.dislocation.rationale}
+                          className={`mt-0.5 inline-flex w-fit items-center gap-0.5 text-[8px] font-mono font-bold px-1 py-0.5 rounded ${
+                            item.dislocation.action === "avoid"
+                              ? "bg-[#FF3B30]/15 text-[#FF3B30]"
+                              : item.dislocation.action === "watch"
+                              ? "bg-[#FF9900]/15 text-[#FF9900]"
+                              : "bg-[#00FF66]/15 text-[#00FF66]"
+                          }`}
+                        >
+                          ⚡ {item.dislocation.label}
+                        </span>
+                      )}
                     </td>
 
                     {/* Event */}

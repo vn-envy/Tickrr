@@ -13,7 +13,7 @@ from fastapi.responses import RedirectResponse
 from app import __version__
 from app.config import settings
 from app.data.polymarket import PolymarketClient
-from app.engine import fair_value
+from app.engine import fair_value, dislocation
 from app.models import MarketIntel, MarketSnapshot, Outcome
 
 app = FastAPI(
@@ -45,7 +45,8 @@ def _intel(s: MarketSnapshot) -> MarketIntel:
         liquidity=s.liquidity,
         volume=s.volume,
     )
-    return MarketIntel(market=s, primary_outcome=primary, fair_value=fv)
+    disloc = dislocation.detect(s, fv)
+    return MarketIntel(market=s, primary_outcome=primary, fair_value=fv, dislocation=disloc)
 
 
 @app.get("/", include_in_schema=False)
@@ -66,3 +67,16 @@ async def list_markets(
     """Live market intelligence: matching markets + each one's fair-value read."""
     snapshots = await client.search_markets(query=query, limit=limit)
     return [_intel(s) for s in snapshots]
+
+
+@app.get("/api/dislocations", response_model=list[MarketIntel])
+async def list_dislocations(
+    query: str = Query("World Cup", description="Event-title filter"),
+    limit: int = Query(60, ge=1, le=200),
+):
+    """The home board: only markets currently flagged with a dislocation, most severe first."""
+    snapshots = await client.search_markets(query=query, limit=limit)
+    intel = [_intel(s) for s in snapshots]
+    flagged = [m for m in intel if m.dislocation is not None]
+    flagged.sort(key=lambda m: m.dislocation.severity if m.dislocation else 0.0, reverse=True)
+    return flagged
