@@ -1,0 +1,68 @@
+"""Tickrr API — FastAPI app.
+
+Day-1 surface: health + a market-intelligence endpoint that pulls live Polymarket markets
+and returns the deterministic fair-value read for each. Dislocation detection, the Gemini
+"why did it move?" agent, the simulator, and auth/billing are the next increments.
+"""
+from __future__ import annotations
+
+from fastapi import FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
+
+from app import __version__
+from app.config import settings
+from app.data.polymarket import PolymarketClient
+from app.engine import fair_value
+from app.models import MarketIntel, MarketSnapshot, Outcome
+
+app = FastAPI(
+    title="Tickrr API",
+    version=__version__,
+    description="Prediction & event intelligence — intel only, never executes trades.",
+)
+
+# Open CORS for the local Next.js terminal during development.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+client = PolymarketClient()
+
+
+def _intel(s: MarketSnapshot) -> MarketIntel:
+    """Attach the deterministic fair-value read to a snapshot. The primary outcome is the
+    first listed (e.g. 'Yes' on a team-to-win market), which is what bid/ask reference."""
+    primary = s.outcomes[0] if s.outcomes else Outcome(label="Yes", price=s.last_price or 0.0)
+    fv = fair_value.assess(
+        primary.price,
+        best_bid=s.best_bid,
+        best_ask=s.best_ask,
+        spread=s.spread,
+        liquidity=s.liquidity,
+        volume=s.volume,
+    )
+    return MarketIntel(market=s, primary_outcome=primary, fair_value=fv)
+
+
+@app.get("/", include_in_schema=False)
+async def root():
+    return RedirectResponse(url="/docs")
+
+
+@app.get("/healthz")
+async def healthz():
+    return {"status": "ok", "version": __version__, "env": settings.tickrr_env}
+
+
+@app.get("/api/markets", response_model=list[MarketIntel])
+async def list_markets(
+    query: str = Query("World Cup", description="Event-title filter"),
+    limit: int = Query(30, ge=1, le=100),
+):
+    """Live market intelligence: matching markets + each one's fair-value read."""
+    snapshots = await client.search_markets(query=query, limit=limit)
+    return [_intel(s) for s in snapshots]
