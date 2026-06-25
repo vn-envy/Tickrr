@@ -6,6 +6,8 @@ and returns the deterministic fair-value read for each. Dislocation detection, t
 """
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
@@ -13,8 +15,11 @@ from fastapi.responses import RedirectResponse
 from app import __version__
 from app.config import settings
 from app.data.polymarket import PolymarketClient
-from app.data.kalshi import KalshiClient, normalize_team, GOAL_LEADER_SERIES
+from app.data.kalshi import (
+    KalshiClient, normalize_team, GOAL_LEADER_SERIES, ASSISTS_SERIES, GOAL_SERIES, SOA_SERIES,
+)
 from app.data.players import country_for
+from app.data import wiki, gdelt
 from app.engine import fair_value, dislocation
 from app.models import MarketIntel, MarketSnapshot, Outcome, Divergence, TeamEnrichment
 
@@ -173,13 +178,38 @@ async def price_history(token: str, interval: str = "1m", fidelity: int = 1440):
 
 @app.get("/api/player")
 async def player_card(name: str):
-    """Kalshi player markets (goal-leader + assists) for the player dossier."""
+    """Aggregated player intelligence: Kalshi markets (goal-leader / to-score / goal+assist /
+    assists), Wikipedia attention 'buzz', and recent news — fetched concurrently, best-effort."""
     key = normalize_team(name)
-    gl = (await kalshi_client.get_winner_probs(series=GOAL_LEADER_SERIES)).get(key)
-    ast = (await kalshi_client.get_assist_probs()).get(key)
-    out: dict = {"name": name, "kalshi": {"goal_leader": None, "assists": None}}
-    if gl:
-        out["kalshi"]["goal_leader"] = {"prob": round(gl["prob"] * 100, 1), "url": gl.get("url")}
-    if ast:
-        out["kalshi"]["assists"] = {"prob": round(ast["prob"] * 100, 1), "threshold": ast.get("threshold"), "url": ast.get("url")}
-    return out
+    gl, ast, goal, soa, buzz_d, news_d = await asyncio.gather(
+        kalshi_client.get_winner_probs(series=GOAL_LEADER_SERIES),
+        kalshi_client.get_threshold_probs(ASSISTS_SERIES),
+        kalshi_client.get_threshold_probs(GOAL_SERIES),
+        kalshi_client.get_threshold_probs(SOA_SERIES),
+        wiki.buzz(name),
+        gdelt.news(name),
+        return_exceptions=True,
+    )
+
+    def pick(result) -> dict | None:
+        if not isinstance(result, dict):
+            return None
+        entry = result.get(key)
+        if not entry:
+            return None
+        out = {"prob": round(entry["prob"] * 100, 1), "url": entry.get("url")}
+        if entry.get("threshold"):
+            out["threshold"] = entry["threshold"]
+        return out
+
+    return {
+        "name": name,
+        "kalshi": {
+            "goal_leader": pick(gl),
+            "to_score": pick(goal),
+            "score_or_assist": pick(soa),
+            "assists": pick(ast),
+        },
+        "buzz": buzz_d if isinstance(buzz_d, dict) else None,
+        "news": news_d if isinstance(news_d, dict) else None,
+    }

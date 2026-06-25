@@ -23,6 +23,8 @@ from app.config import settings
 WC_WINNER_SERIES = "KXMENWORLDCUP"
 GOAL_LEADER_SERIES = "KXWCGOALLEADER"  # Kalshi top-scorer (Golden Boot equivalent)
 ASSISTS_SERIES = "KXWCAST"
+GOAL_SERIES = "KXWCGOAL"   # per-match "scores N+ goals" (1+ = to-score)
+SOA_SERIES = "KXWCSOA"     # per-match "goal or assist"
 
 # Per-series process cache so a Kalshi blip never empties the board (last-known-good).
 _CACHE: dict = {}  # series -> {"ts": float, "probs": dict}
@@ -95,9 +97,10 @@ class KalshiClient:
         _CACHE[series] = {"ts": now, "probs": out}
         return out
 
-    async def get_assist_probs(self, series: str = ASSISTS_SERIES) -> dict[str, dict]:
-        """normalized player -> {prob, threshold, url} for assists, preferring the '1+' line.
-        Kalshi encodes these as yes_sub_title 'Player Name: 1+'."""
+    async def get_threshold_probs(self, series: str) -> dict[str, dict]:
+        """normalized player -> {prob, threshold, url} for 'Player: N+' per-match series
+        (assists / goals / score-or-assist). Prefers the '1+' line; on duplicate players keeps
+        the most-liquid market. Cached; last-known-good on failure."""
         now = time.time()
         cached = _CACHE.get(series)
         if cached and cached["probs"] and now - cached["ts"] < _CACHE_TTL_S:
@@ -106,16 +109,23 @@ class KalshiClient:
         if not markets:
             return cached["probs"] if cached else {}
         out: dict[str, dict] = {}
+        best_vol: dict[str, float] = {}
         for m in markets:
             sub = m.get("yes_sub_title") or ""
-            if ":" not in sub:
-                continue
-            name, thr = (p.strip() for p in sub.split(":", 1))
+            if ":" in sub:
+                name, thr = (p.strip() for p in sub.split(":", 1))
+            else:
+                name, thr = sub.strip(), "1+"
             prob = _mid(m)
             if not name or prob is None:
                 continue
             key = normalize_team(name)
-            if key not in out or thr.startswith("1"):  # prefer the 1+ line
-                out[key] = {"prob": round(prob, 4), "threshold": f"{thr} assists", "url": _kalshi_url(series)}
+            vol = _to_float(m.get("volume_fp")) or _to_float(m.get("volume")) or 0.0
+            if thr.startswith("1"):  # prefer the 1+ line; among those, the most-liquid match
+                if key not in best_vol or vol > best_vol[key]:
+                    out[key] = {"prob": round(prob, 4), "threshold": thr, "url": _kalshi_url(series)}
+                    best_vol[key] = vol
+            elif key not in out:
+                out[key] = {"prob": round(prob, 4), "threshold": thr, "url": _kalshi_url(series)}
         _CACHE[series] = {"ts": now, "probs": out}
         return out

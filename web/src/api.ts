@@ -164,21 +164,42 @@ export async function fetchHistory(token: string, interval = "1m"): Promise<{ t:
   }
 }
 
-export interface PlayerCard {
-  goalLeader?: { prob: number; url?: string } | null;
-  assists?: { prob: number; threshold?: string; url?: string } | null;
+interface KMarket {
+  prob: number;
+  threshold?: string;
+  url?: string;
 }
 
-/** Kalshi player markets (goal-leader + assists) for the dossier. */
+export interface PlayerCard {
+  goalLeader?: KMarket | null;
+  toScore?: KMarket | null;
+  scoreOrAssist?: KMarket | null;
+  assists?: KMarket | null;
+  buzz?: {
+    series: { t: string; v: number }[];
+    latest: number;
+    baseline: number;
+    spike: number;
+    url?: string;
+  } | null;
+  news?: { articles: { title: string; url: string; domain?: string }[] } | null;
+}
+
+/** Aggregated player intelligence: Kalshi markets + Wikipedia buzz + recent news. */
 export async function fetchPlayer(name: string): Promise<PlayerCard> {
   try {
     const res = await fetch(`${API_BASE}/api/player?name=${encodeURIComponent(name)}`);
     if (!res.ok) return {};
     const d = await res.json();
     const k = d.kalshi || {};
+    const km = (x: any): KMarket | null => (x ? { prob: x.prob, threshold: x.threshold, url: x.url } : null);
     return {
-      goalLeader: k.goal_leader ? { prob: k.goal_leader.prob, url: k.goal_leader.url } : null,
-      assists: k.assists ? { prob: k.assists.prob, threshold: k.assists.threshold, url: k.assists.url } : null,
+      goalLeader: km(k.goal_leader),
+      toScore: km(k.to_score),
+      scoreOrAssist: km(k.score_or_assist),
+      assists: km(k.assists),
+      buzz: d.buzz || null,
+      news: d.news || null,
     };
   } catch {
     return {};

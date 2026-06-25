@@ -19,6 +19,27 @@ interface Props {
 
 const norm = (s?: string) => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 
+function Sparkline({ series }: { series: { t: string; v: number }[] }) {
+  if (!series || series.length < 2) return null;
+  const w = 120;
+  const h = 28;
+  const vals = series.map((p) => p.v);
+  const mn = Math.min(...vals);
+  const rng = Math.max(...vals) - mn || 1;
+  const d = series
+    .map((p, i) => {
+      const x = (i / (series.length - 1)) * w;
+      const y = h - ((p.v - mn) / rng) * h;
+      return `${i === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`;
+    })
+    .join(" ");
+  return (
+    <svg width={w} height={h} className="overflow-visible shrink-0">
+      <path d={d} fill="none" stroke="#00FF66" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export default function PlayerDossier({ entity, entities, onSelect }: Props) {
   const players = entities
     .filter((e) => e.category === "athlete")
@@ -110,24 +131,59 @@ export default function PlayerDossier({ entity, entities, onSelect }: Props) {
         )}
       </div>
 
-      {(card.goalLeader || card.assists) && (
+      {(card.goalLeader || card.toScore || card.scoreOrAssist || card.assists) && (
         <div className="px-3 pb-3">
           <div className="text-[9px] text-[#D1D4DC]/50 font-bold tracking-wider mb-1 font-mono">KALSHI PLAYER MARKETS</div>
           <div className="flex gap-2 flex-wrap font-mono text-[11px] items-center">
-            {card.goalLeader && (
-              <a href={card.goalLeader.url} target="_blank" rel="noreferrer" className="bg-[#1C2128]/40 border border-[#2D333B] rounded px-2 py-1 hover:border-[#FF9900]/50 transition">
-                <span className="text-[#D1D4DC]/50">Goal Leader </span>
-                <span className="text-white font-bold">{card.goalLeader.prob.toFixed(1)}%</span>
-              </a>
-            )}
-            {card.assists && (
-              <a href={card.assists.url} target="_blank" rel="noreferrer" className="bg-[#1C2128]/40 border border-[#2D333B] rounded px-2 py-1 hover:border-[#FF9900]/50 transition">
-                <span className="text-[#D1D4DC]/50">{card.assists.threshold || "Assists"} </span>
-                <span className="text-white font-bold">{card.assists.prob.toFixed(1)}%</span>
-              </a>
-            )}
+            {[
+              { k: card.goalLeader, label: "Goal Leader" },
+              { k: card.toScore, label: "To Score" },
+              { k: card.scoreOrAssist, label: "Goal+Assist" },
+              { k: card.assists, label: card.assists?.threshold ? `${card.assists.threshold} Assists` : "Assists" },
+            ]
+              .filter((c) => c.k)
+              .map((c, i) => (
+                <a key={i} href={c.k!.url} target="_blank" rel="noreferrer" className="bg-[#1C2128]/40 border border-[#2D333B] rounded px-2 py-1 hover:border-[#FF9900]/50 transition">
+                  <span className="text-[#D1D4DC]/50">{c.label} </span>
+                  <span className="text-white font-bold">{c.k!.prob.toFixed(1)}%</span>
+                </a>
+              ))}
             <span className="text-[8px] text-[#D1D4DC]/30">via Kalshi</span>
           </div>
+        </div>
+      )}
+
+      {card.buzz && (
+        <div className="px-3 pb-3">
+          <div className="flex items-center justify-between mb-1">
+            <div className="text-[9px] text-[#D1D4DC]/50 font-bold tracking-wider font-mono">ATTENTION · WIKIPEDIA</div>
+            {card.buzz.spike >= 1.5 && (
+              <span className="text-[9px] font-mono font-bold text-[#00FF66] terminal-glow-green">▲ {card.buzz.spike.toFixed(1)}× BUZZ</span>
+            )}
+          </div>
+          <div className="flex items-center gap-3 bg-[#1C2128]/40 border border-[#2D333B] rounded p-2">
+            <Sparkline series={card.buzz.series} />
+            <div className="font-mono text-[10px] text-[#D1D4DC]/60 leading-tight">
+              <div><span className="text-white font-bold">{card.buzz.latest.toLocaleString()}</span> peak/day</div>
+              <div className="text-[#D1D4DC]/40">base {card.buzz.baseline.toLocaleString()}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {card.news && card.news.articles.length > 0 && (
+        <div className="px-3 pb-3">
+          <div className="text-[9px] text-[#D1D4DC]/50 font-bold tracking-wider mb-1 font-mono">RECENT NEWS · GDELT</div>
+          <ul className="space-y-1">
+            {card.news.articles.map((a, i) => (
+              <li key={i} className="text-[11px] leading-tight font-sans">
+                <a href={a.url} target="_blank" rel="noreferrer" className="text-[#D1D4DC]/80 hover:text-[#00FF66] transition">
+                  • {a.title}
+                </a>
+                {a.domain && <span className="text-[#D1D4DC]/30 text-[9px]"> — {a.domain}</span>}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
