@@ -25,7 +25,7 @@ export default function App() {
 
   // Load live World Cup market intelligence from the Tickrr backend (falls back to seed data).
   useEffect(() => {
-    fetchMarkets("World Cup", 40)
+    fetchMarkets("World Cup", 100)
       .then((markets) => {
         if (markets.length) {
           setEntities(markets);
