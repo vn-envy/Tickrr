@@ -15,6 +15,7 @@ import TelemetryChart from "./components/TelemetryChart";
 import IntelligencePanel from "./components/IntelligencePanel";
 import DeliberationRoom from "./components/DeliberationRoom";
 import DislocationBoard from "./components/DislocationBoard";
+import PlayerDossier from "./components/PlayerDossier";
 import { Globe, RefreshCw, Layers, Lock } from "lucide-react";
 
 export default function App() {
@@ -158,6 +159,9 @@ export default function App() {
 
         {/* Right Dashboard Pane: Active Charts & AI Analytics Panel */}
         <div className="lg:col-span-8 flex flex-col gap-4 h-full">
+          {activeEntity.category === "athlete" && (
+            <PlayerDossier entity={activeEntity} entities={entities} onSelect={(e) => setActiveEntity(e)} />
+          )}
           {/* Active SVG Telemetry Chart */}
           <div className="flex-1 min-h-[260px]">
             <TelemetryChart entity={activeEntity} />

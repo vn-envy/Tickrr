@@ -115,9 +115,11 @@ def _intel(s: MarketSnapshot, kalshi_team: dict | None = None,
             )
 
     disloc = dislocation.detect(s, fv, kalshi_prob=kp, kalshi_url=ku)
+    player_country = country_for(s.group_title or s.question) if subject == "player" else None
     return MarketIntel(
         market=s, primary_outcome=primary, fair_value=fv,
-        dislocation=disloc, divergence=div, subject_type=subject, enrichment=enr,
+        dislocation=disloc, divergence=div, subject_type=subject,
+        enrichment=enr, player_country=player_country,
     )
 
 

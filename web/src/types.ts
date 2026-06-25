@@ -51,6 +51,7 @@ export interface SportsEntity {
     topScorerProb?: number;
     attackingThreat?: number;
   };
+  playerCountry?: string;
   clobTokenId?: string;
 }
 

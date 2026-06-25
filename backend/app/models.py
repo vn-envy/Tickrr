@@ -80,3 +80,4 @@ class MarketIntel(BaseModel):
     divergence: Divergence | None = None
     subject_type: str = "team"   # "player" | "team"
     enrichment: TeamEnrichment | None = None
+    player_country: str | None = None

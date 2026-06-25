@@ -65,6 +65,7 @@ interface MarketIntel {
     attacking_threat?: number | null;
     scorer_count?: number;
   } | null;
+  player_country?: string | null;
 }
 
 function tickerFrom(name: string): string {
@@ -137,6 +138,7 @@ export function intelToEntity(mi: MarketIntel): SportsEntity {
           attackingThreat: mi.enrichment.attacking_threat ?? undefined,
         }
       : undefined,
+    playerCountry: mi.player_country ?? undefined,
     clobTokenId: m.clob_token_id ?? undefined,
   };
 }
