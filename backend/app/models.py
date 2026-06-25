@@ -65,9 +65,18 @@ class Divergence(BaseModel):
     url: str | None = None
 
 
+class TeamEnrichment(BaseModel):
+    top_scorer: str | None = None
+    top_scorer_prob: float | None = None   # %
+    attacking_threat: float | None = None  # % (sum of squad golden-boot probs, capped at 100)
+    scorer_count: int = 0
+
+
 class MarketIntel(BaseModel):
     market: MarketSnapshot
     primary_outcome: Outcome
     fair_value: FairValue
     dislocation: Dislocation | None = None
     divergence: Divergence | None = None
+    subject_type: str = "team"   # "player" | "team"
+    enrichment: TeamEnrichment | None = None

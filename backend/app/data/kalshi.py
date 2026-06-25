@@ -17,9 +17,10 @@ import httpx
 from app.config import settings
 
 WC_WINNER_SERIES = "KXMENWORLDCUP"
+GOAL_LEADER_SERIES = "KXWCGOALLEADER"  # Kalshi top-scorer (Golden Boot equivalent)
 
-# Process cache so a Kalshi blip never empties the cross-venue board (last-known-good).
-_CACHE: dict = {"ts": 0.0, "probs": {}}
+# Per-series process cache so a Kalshi blip never empties the board (last-known-good).
+_CACHE: dict = {}  # series -> {"ts": float, "probs": dict}
 _CACHE_TTL_S = 30.0
 
 
@@ -44,8 +45,9 @@ class KalshiClient:
         """Map normalized team -> {prob, ticker, url} from Kalshi's WC winner market.
         Best-effort: serves a short cache and falls back to last-known-good on failure."""
         now = time.time()
-        if _CACHE["probs"] and now - _CACHE["ts"] < _CACHE_TTL_S:
-            return _CACHE["probs"]
+        cached = _CACHE.get(series)
+        if cached and cached["probs"] and now - cached["ts"] < _CACHE_TTL_S:
+            return cached["probs"]
         markets: list = []
         for _ in range(3):  # best-effort with retries (Kalshi can be flaky)
             try:
@@ -60,7 +62,7 @@ class KalshiClient:
             except Exception:
                 markets = []
         if not markets:
-            return _CACHE["probs"]  # last-known-good (possibly stale) beats nothing
+            return cached["probs"] if cached else {}  # last-known-good beats nothing
 
         out: dict[str, dict] = {}
         for m in markets:
@@ -81,6 +83,5 @@ class KalshiClient:
                 "ticker": m.get("ticker"),
                 "url": f"https://kalshi.com/markets/{series.lower()}",
             }
-        _CACHE["ts"] = now
-        _CACHE["probs"] = out
+        _CACHE[series] = {"ts": now, "probs": out}
         return out

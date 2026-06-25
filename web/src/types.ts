@@ -46,6 +46,11 @@ export interface SportsEntity {
     gapPP: number;
     url?: string;
   };
+  enrichment?: {
+    topScorer?: string;
+    topScorerProb?: number;
+    attackingThreat?: number;
+  };
   clobTokenId?: string;
 }
 

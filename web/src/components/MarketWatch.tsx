@@ -77,7 +77,7 @@ export default function MarketWatch({
             }`}
           >
             <Users className="w-2.5 h-2.5" />
-            ATHLETES
+            PLAYERS
           </button>
           <button
             onClick={() => setCategoryFilter("team")}
@@ -162,6 +162,14 @@ export default function MarketWatch({
                           }`}
                         >
                           ⚡ {item.dislocation.label}
+                        </span>
+                      )}
+                      {item.enrichment?.topScorer && (
+                        <span
+                          className="mt-0.5 text-[8px] font-mono text-[#00FF66]/70"
+                          title={`Attacking threat ${item.enrichment.attackingThreat ?? 0}% (squad golden-boot)`}
+                        >
+                          ⚽ {item.enrichment.topScorer} {Math.round(item.enrichment.topScorerProb ?? 0)}%
                         </span>
                       )}
                     </td>

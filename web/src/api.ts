@@ -58,6 +58,13 @@ interface MarketIntel {
   fair_value: FairValue;
   dislocation?: DislocationT | null;
   divergence?: DivergenceT | null;
+  subject_type?: string;
+  enrichment?: {
+    top_scorer?: string | null;
+    top_scorer_prob?: number | null;
+    attacking_threat?: number | null;
+    scorer_count?: number;
+  } | null;
 }
 
 function tickerFrom(name: string): string {
@@ -102,7 +109,7 @@ export function intelToEntity(mi: MarketIntel): SportsEntity {
     speedHistory: synthHistory(liq),
     playmakingHistory: synthHistory(impliedPct),
     defenseHistory: synthHistory(tightness),
-    category: "team",
+    category: mi.subject_type === "player" ? "athlete" : "team",
     // --- honest prediction-market fields ---
     impliedProb: impliedPct,
     fairLow: Number((fv.fair_low * 100).toFixed(2)),
@@ -121,6 +128,13 @@ export function intelToEntity(mi: MarketIntel): SportsEntity {
           kalshi: mi.divergence.kalshi,
           gapPP: mi.divergence.gap_pp,
           url: mi.divergence.url ?? undefined,
+        }
+      : undefined,
+    enrichment: mi.enrichment
+      ? {
+          topScorer: mi.enrichment.top_scorer ?? undefined,
+          topScorerProb: mi.enrichment.top_scorer_prob ?? undefined,
+          attackingThreat: mi.enrichment.attacking_threat ?? undefined,
         }
       : undefined,
     clobTokenId: m.clob_token_id ?? undefined,
