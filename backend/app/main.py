@@ -169,3 +169,17 @@ async def price_history(token: str, interval: str = "1m", fidelity: int = 1440):
     """Implied-probability time series for a market's Yes token (Polymarket CLOB)."""
     points = await client.get_price_history(token, interval=interval, fidelity=fidelity)
     return {"history": points}
+
+
+@app.get("/api/player")
+async def player_card(name: str):
+    """Kalshi player markets (goal-leader + assists) for the player dossier."""
+    key = normalize_team(name)
+    gl = (await kalshi_client.get_winner_probs(series=GOAL_LEADER_SERIES)).get(key)
+    ast = (await kalshi_client.get_assist_probs()).get(key)
+    out: dict = {"name": name, "kalshi": {"goal_leader": None, "assists": None}}
+    if gl:
+        out["kalshi"]["goal_leader"] = {"prob": round(gl["prob"] * 100, 1), "url": gl.get("url")}
+    if ast:
+        out["kalshi"]["assists"] = {"prob": round(ast["prob"] * 100, 1), "threshold": ast.get("threshold"), "url": ast.get("url")}
+    return out

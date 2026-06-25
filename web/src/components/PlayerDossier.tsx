@@ -6,7 +6,9 @@
  * + fair range, scorer rank in the field, cross-venue (Polymarket vs Kalshi goal-leader) gap,
  * and a link to the player's national team (with that team's attacking-threat rollup).
  */
+import { useState, useEffect } from "react";
 import { SportsEntity } from "../types";
+import { fetchPlayer, PlayerCard } from "../api";
 import { User, Flag, Trophy, ArrowRight } from "lucide-react";
 
 interface Props {
@@ -30,6 +32,13 @@ export default function PlayerDossier({ entity, entities, onSelect }: Props) {
     : undefined;
 
   const div = entity.divergence;
+
+  const [card, setCard] = useState<PlayerCard>({});
+  useEffect(() => {
+    let on = true;
+    fetchPlayer(entity.name).then((c) => { if (on) setCard(c); });
+    return () => { on = false; };
+  }, [entity.name]);
 
   return (
     <div className="bg-[#0B0E11]/40 border border-[#2D333B] rounded shadow-xl backdrop-blur-md overflow-hidden">
@@ -100,6 +109,27 @@ export default function PlayerDossier({ entity, entities, onSelect }: Props) {
           </button>
         )}
       </div>
+
+      {(card.goalLeader || card.assists) && (
+        <div className="px-3 pb-3">
+          <div className="text-[9px] text-[#D1D4DC]/50 font-bold tracking-wider mb-1 font-mono">KALSHI PLAYER MARKETS</div>
+          <div className="flex gap-2 flex-wrap font-mono text-[11px] items-center">
+            {card.goalLeader && (
+              <a href={card.goalLeader.url} target="_blank" rel="noreferrer" className="bg-[#1C2128]/40 border border-[#2D333B] rounded px-2 py-1 hover:border-[#FF9900]/50 transition">
+                <span className="text-[#D1D4DC]/50">Goal Leader </span>
+                <span className="text-white font-bold">{card.goalLeader.prob.toFixed(1)}%</span>
+              </a>
+            )}
+            {card.assists && (
+              <a href={card.assists.url} target="_blank" rel="noreferrer" className="bg-[#1C2128]/40 border border-[#2D333B] rounded px-2 py-1 hover:border-[#FF9900]/50 transition">
+                <span className="text-[#D1D4DC]/50">{card.assists.threshold || "Assists"} </span>
+                <span className="text-white font-bold">{card.assists.prob.toFixed(1)}%</span>
+              </a>
+            )}
+            <span className="text-[8px] text-[#D1D4DC]/30">via Kalshi</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

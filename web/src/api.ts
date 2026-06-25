@@ -163,3 +163,24 @@ export async function fetchHistory(token: string, interval = "1m"): Promise<{ t:
     return [];
   }
 }
+
+export interface PlayerCard {
+  goalLeader?: { prob: number; url?: string } | null;
+  assists?: { prob: number; threshold?: string; url?: string } | null;
+}
+
+/** Kalshi player markets (goal-leader + assists) for the dossier. */
+export async function fetchPlayer(name: string): Promise<PlayerCard> {
+  try {
+    const res = await fetch(`${API_BASE}/api/player?name=${encodeURIComponent(name)}`);
+    if (!res.ok) return {};
+    const d = await res.json();
+    const k = d.kalshi || {};
+    return {
+      goalLeader: k.goal_leader ? { prob: k.goal_leader.prob, url: k.goal_leader.url } : null,
+      assists: k.assists ? { prob: k.assists.prob, threshold: k.assists.threshold, url: k.assists.url } : null,
+    };
+  } catch {
+    return {};
+  }
+}
