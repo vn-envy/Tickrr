@@ -2,11 +2,21 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
+import Stripe from "stripe";
 import dotenv from "dotenv";
 
 dotenv.config();
 
 const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+
+const STRIPE_KEY = process.env.STRIPE_SECRET_KEY || "";
+const APP_URL = process.env.APP_URL || "http://localhost:3000";
+const stripe = STRIPE_KEY ? new Stripe(STRIPE_KEY, { apiVersion: "2024-06-20" } as any) : null;
+
+const PLANS: Record<string, { label: string; amount: number; mode: "subscription" | "payment"; interval?: "month" }> = {
+  pro: { label: "Tickrr Pro", amount: 1900, mode: "subscription", interval: "month" },
+  founder: { label: "Tickrr Founder's Pass — lifetime", amount: 9900, mode: "payment" },
+};
 
 interface MarketContext {
   name: string;
@@ -189,6 +199,58 @@ Produce a prediction-market intelligence report on this market. Explain what the
     } catch (error: any) {
       console.error("[TICKRR] Deliberation failed:", error);
       res.status(500).json({ error: "Deliberation failed.", details: error?.message || String(error), mocked: true, data: getMockDeliberation(entity, stance) });
+    }
+  });
+
+  // Billing: plans + Stripe Checkout (intel-only product; hosted checkout = no card data here).
+  app.get("/api/plans", (_req, res) => {
+    res.json({
+      stripe: Boolean(stripe),
+      plans: Object.entries(PLANS).map(([id, p]) => ({
+        id, label: p.label, amount: p.amount, mode: p.mode, interval: p.interval,
+      })),
+    });
+  });
+
+  app.post("/api/checkout", async (req, res) => {
+    const { plan } = req.body || {};
+    const cfg = PLANS[plan];
+    if (!cfg) return res.status(400).json({ error: "Unknown plan." });
+    if (!stripe) {
+      // No key configured → demo mode: the client unlocks Pro locally.
+      return res.json({ demo: true });
+    }
+    try {
+      const session = await stripe.checkout.sessions.create({
+        mode: cfg.mode,
+        line_items: [{
+          quantity: 1,
+          price_data: {
+            currency: "usd",
+            unit_amount: cfg.amount,
+            product_data: { name: cfg.label },
+            ...(cfg.mode === "subscription" ? { recurring: { interval: cfg.interval || "month" } } : {}),
+          } as any,
+        }],
+        success_url: `${APP_URL}/?pro=1&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${APP_URL}/?pro=0`,
+        allow_promotion_codes: true,
+      });
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error("[TICKRR] Checkout failed:", error);
+      res.status(500).json({ error: error?.message || "Checkout failed." });
+    }
+  });
+
+  app.get("/api/checkout/session", async (req, res) => {
+    const id = String(req.query.session_id || "");
+    if (!stripe || !id) return res.json({ paid: false });
+    try {
+      const s = await stripe.checkout.sessions.retrieve(id);
+      res.json({ paid: s.payment_status === "paid" || s.status === "complete" });
+    } catch {
+      res.json({ paid: false });
     }
   });
 

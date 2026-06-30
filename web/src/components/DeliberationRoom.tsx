@@ -8,6 +8,7 @@
  */
 import { useState, useRef, useEffect, FormEvent } from "react";
 import { SportsEntity } from "../types";
+import { goPro } from "../lib/premium";
 import { Lock, X, ShieldCheck, Send, Scale, Swords, Loader2 } from "lucide-react";
 
 interface Msg {
@@ -87,9 +88,9 @@ export default function DeliberationRoom({ entity, open, onClose }: Props) {
 
   if (!open) return null;
 
-  const activate = () => {
-    try { localStorage.setItem("tickrr_premium", "1"); } catch { /* ignore */ }
-    setPremium(true);
+  const activate = async () => {
+    const unlocked = await goPro("pro");  // redirects to Stripe, or unlocks in demo mode
+    if (unlocked) setPremium(true);
   };
 
   const send = async (e: FormEvent) => {
@@ -147,7 +148,7 @@ export default function DeliberationRoom({ entity, open, onClose }: Props) {
               onClick={activate}
               className="cursor-pointer mt-2 bg-[#00FF66] hover:bg-[#00FF66]/90 text-black font-black text-xs px-5 py-2 rounded tracking-wider transition terminal-glow-green"
             >
-              ACTIVATE FREE TRIAL
+              GO PRO · $19/MO
             </button>
             <span className="text-[#00FF66]/30 text-[9px]">Tickrr Pro · cancel anytime</span>
           </div>

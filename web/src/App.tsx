@@ -16,6 +16,8 @@ import IntelligencePanel from "./components/IntelligencePanel";
 import DeliberationRoom from "./components/DeliberationRoom";
 import DislocationBoard from "./components/DislocationBoard";
 import PlayerDossier from "./components/PlayerDossier";
+import Home from "./components/Home";
+import { isPremium, setPremium, goPro } from "./lib/premium";
 import { Globe, RefreshCw, Layers, Lock } from "lucide-react";
 
 export default function App() {
@@ -23,6 +25,21 @@ export default function App() {
   const [activeEntity, setActiveEntity] = useState<SportsEntity>(INITIAL_SPORTS_ENTITIES[0]);
   const [sportFilter, setSportFilter] = useState<string | null>(null);
   const [delibOpen, setDelibOpen] = useState(false);
+  const [entered, setEntered] = useState(false);
+  const [pro, setPro] = useState(isPremium());
+
+  // Stripe Checkout return (?pro=1) + resume an already-entered session.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("pro") === "1") {
+      setPremium(true);
+      setPro(true);
+      setEntered(true);
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (sessionStorage.getItem("tickrr_entered") === "1") {
+      setEntered(true);
+    }
+  }, []);
 
   // Load live World Cup market intelligence from the Tickrr backend (falls back to seed data).
   useEffect(() => {
@@ -35,6 +52,16 @@ export default function App() {
       })
       .catch((err) => console.warn("[Tickrr] live markets unavailable; using seed data:", err));
   }, []);
+
+  const enterTerminal = () => {
+    try { sessionStorage.setItem("tickrr_entered", "1"); } catch { /* ignore */ }
+    setEntered(true);
+  };
+
+  const handleGoPro = async (plan: string) => {
+    const unlocked = await goPro(plan);  // redirects to Stripe, or unlocks in demo mode
+    if (unlocked) { setPro(true); enterTerminal(); }
+  };
 
   // Dynamic athlete/team provisioner for on-the-fly terminal listing!
   const handleCustomAdd = (name: string) => {
@@ -82,8 +109,12 @@ export default function App() {
     setActiveEntity(newEntity);
   };
 
+  if (!entered) {
+    return <Home onEnter={enterTerminal} onGoPro={handleGoPro} premium={pro} />;
+  }
+
   return (
-    <div 
+    <div
       className="min-h-screen bg-[#050608] text-[#D1D4DC] flex flex-col font-sans scanline-overlay relative overflow-x-hidden"
       id="tickrr-main-terminal"
     >
@@ -92,8 +123,10 @@ export default function App() {
         className="w-full bg-[#0B0E11]/80 backdrop-blur-md border-b border-[#2D333B] px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-3 z-30 select-none"
         id="tickrr-header"
       >
-        {/* Left branding */}
-        <TickrrLogo />
+        {/* Left branding (click to return home) */}
+        <button onClick={() => setEntered(false)} className="cursor-pointer" title="Back to home">
+          <TickrrLogo />
+        </button>
 
         {/* Right stats indicators */}
         <div className="flex items-center gap-5 font-mono text-[10px] text-[#D1D4DC]/40">
