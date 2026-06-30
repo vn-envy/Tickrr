@@ -110,8 +110,8 @@ export default function MarketWatch({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-[#050608]/90 border-b border-[#2D333B] font-mono text-[10px] text-[#D1D4DC]/40 tracking-wider sticky top-0 select-none">
-              <th className="py-2.5 px-3 font-semibold">TICKER / MARKET</th>
-              <th className="py-2.5 px-2 font-semibold hidden sm:table-cell">EVENT</th>
+              <th className="py-2.5 px-3 font-semibold">TICKER / NAME</th>
+              <th className="py-2.5 px-2 font-semibold hidden sm:table-cell">MARKET</th>
               <th className="py-2.5 px-2 font-semibold text-right">IMPLIED %</th>
               <th className="py-2.5 px-2 font-semibold text-right">1W &#916;</th>
               <th className="py-2.5 px-2 font-semibold text-right hidden md:table-cell">LIQ</th>

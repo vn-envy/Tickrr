@@ -179,9 +179,9 @@ export default function App() {
       <DislocationBoard entities={entities} onSelect={(e) => setActiveEntity(e)} />
 
       {/* Main Terminal Workspace Layout */}
-      <main className="flex-1 p-3 md:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 z-20 overflow-hidden">
+      <main className="flex-1 p-3 md:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 z-20 items-start overflow-y-auto">
         {/* Left Sidebar Pane: Market Directory (Screener Grid) */}
-        <div className="lg:col-span-4 h-full flex flex-col min-h-[300px]">
+        <div className="lg:col-span-4 flex flex-col h-[70vh] lg:h-[78vh]">
           <MarketWatch 
             entities={entities}
             activeEntity={activeEntity}
@@ -191,17 +191,17 @@ export default function App() {
         </div>
 
         {/* Right Dashboard Pane: Active Charts & AI Analytics Panel */}
-        <div className="lg:col-span-8 flex flex-col gap-4 h-full">
+        <div className="lg:col-span-8 flex flex-col gap-4">
           {activeEntity.category === "athlete" && (
             <PlayerDossier entity={activeEntity} entities={entities} onSelect={(e) => setActiveEntity(e)} />
           )}
           {/* Active SVG Telemetry Chart */}
-          <div className="flex-1 min-h-[260px]">
+          <div className="h-[300px]">
             <TelemetryChart entity={activeEntity} />
           </div>
 
           {/* AI-Powered Intel Intelligence & Custom Query Station */}
-          <div className="flex-1 min-h-[350px] lg:min-h-[420px]">
+          <div className="h-[420px]">
             <IntelligencePanel entity={activeEntity} />
           </div>
         </div>

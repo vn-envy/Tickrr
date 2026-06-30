@@ -68,9 +68,23 @@ interface MarketIntel {
   player_country?: string | null;
 }
 
-function tickerFrom(name: string): string {
-  const base = name.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 6) || "MKT";
-  return `${base}.WC`;
+function tickerFrom(name: string, isPlayer: boolean): string {
+  const clean = (name || "").normalize("NFKD").replace(/[̀-ͯ]/g, "");
+  if (isPlayer) {
+    const parts = clean.trim().split(/\s+/);
+    const surname = parts.length > 1 ? parts[parts.length - 1] : parts[0] || "";
+    return surname.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 10) || "PLAYER";
+  }
+  return clean.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 10) || "MKT";
+}
+
+function cleanEvent(eventTitle?: string | null): string {
+  const lower = (eventTitle || "").toLowerCase();
+  if (lower.includes("golden boot")) return "Golden Boot";
+  if (lower.includes("advance") || lower.includes("knockout")) return "To Advance";
+  if (lower.includes("group")) return "Group Stage";
+  if (lower.includes("winner") || lower.includes("win the")) return "To Win Cup";
+  return "World Cup";
 }
 
 /** Gentle random walk that lands on `end`, so the telemetry chart reads as a real series. */
@@ -97,9 +111,9 @@ export function intelToEntity(mi: MarketIntel): SportsEntity {
   return {
     id: m.id || name,
     name,
-    ticker: tickerFrom(name),
+    ticker: tickerFrom(name, mi.subject_type === "player"),
     sport: "Soccer",
-    team: m.event_title || "World Cup",
+    team: cleanEvent(m.event_title),
     value: impliedPct,
     change,
     efficiency: liq,

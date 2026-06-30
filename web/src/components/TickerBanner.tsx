@@ -40,6 +40,8 @@ export default function TickerBanner({ entities, onSelectEntity }: TickerBannerP
 
   // Double list to create seamless infinite scrolling marquee
   const doubleList = [...liveEntities, ...liveEntities, ...liveEntities];
+  // Duration scales with the list so a long board scrolls at a readable pace.
+  const speed = Math.max(90, liveEntities.length * 1.5);
 
   return (
     <div 
@@ -54,10 +56,10 @@ export default function TickerBanner({ entities, onSelectEntity }: TickerBannerP
 
       {/* Marquee Wrapper */}
       <div className="w-full flex pl-36">
-        <div 
-          className="flex whitespace-nowrap animate-[marquee_50s_linear_infinite] hover:[animation-play-state:paused] gap-8 py-1.5"
+        <div
+          className="flex whitespace-nowrap hover:[animation-play-state:paused] gap-8 py-1.5"
           style={{
-            animation: "marquee 45s linear infinite"
+            animation: `marquee ${speed}s linear infinite`
           }}
         >
           {doubleList.map((item, index) => {
