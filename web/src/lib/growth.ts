@@ -44,6 +44,22 @@ export async function generateDrafts(count = 3): Promise<GrowthDraft[]> {
   }
 }
 
+export interface BufferChannel {
+  id: string;
+  name: string;
+  service: string;
+  organization?: string;
+}
+
+export async function fetchBufferChannels(): Promise<{ channels?: BufferChannel[]; error?: string }> {
+  try {
+    const r = await fetch("/api/growth/buffer/channels");
+    return await r.json();
+  } catch {
+    return { error: "Network error." };
+  }
+}
+
 export async function decideDraft(id: string, action: "approve" | "reject"): Promise<GrowthDraft | null> {
   try {
     const r = await fetch(`/api/growth/drafts/${id}/${action}`, { method: "POST" });

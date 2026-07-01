@@ -164,6 +164,35 @@ async function bufferCreatePost(channelId: string, text: string): Promise<string
   }
 }
 
+// Buffer GraphQL helper (throws on transport/GraphQL errors so callers can surface a message).
+async function bufferGraphql(query: string): Promise<any> {
+  const r = await fetch("https://api.buffer.com", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${BUFFER_ACCESS_TOKEN}` },
+    body: JSON.stringify({ query }),
+  });
+  const data: any = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(`Buffer HTTP ${r.status}`);
+  if (data?.errors?.length) throw new Error(data.errors[0]?.message || "Buffer GraphQL error");
+  return data?.data;
+}
+
+// List connected channels + their IDs (for wiring BUFFER_CHANNEL_IDS): org first, then channels.
+async function bufferListChannels(): Promise<Array<{ id: string; name: string; service: string; organization: string }>> {
+  const orgData = await bufferGraphql(`query { account { organizations { id name } } }`);
+  const orgs: any[] = orgData?.account?.organizations || [];
+  const out: Array<{ id: string; name: string; service: string; organization: string }> = [];
+  for (const org of orgs) {
+    const chData = await bufferGraphql(
+      `query { channels(input: { organizationId: ${JSON.stringify(org.id)} }) { id name service } }`,
+    );
+    for (const ch of chData?.channels || []) {
+      out.push({ id: ch.id, name: ch.name || ch.service, service: ch.service, organization: org.name || "" });
+    }
+  }
+  return out;
+}
+
 async function publishBuffer(text: string): Promise<string> {
   if (!BUFFER_ACCESS_TOKEN || !BUFFER_CHANNEL_IDS.length) {
     return "dry-run (set BUFFER_ACCESS_TOKEN + BUFFER_CHANNEL_IDS)";
@@ -442,6 +471,18 @@ Produce a prediction-market intelligence report on this market. Explain what the
       buffer: Boolean(BUFFER_ACCESS_TOKEN && BUFFER_CHANNEL_IDS.length),
       drafts: loadDrafts().slice(0, 50),
     });
+  });
+
+  // Helper: list your Buffer channels + IDs so you can fill BUFFER_CHANNEL_IDS (X/LinkedIn/IG).
+  app.get("/api/growth/buffer/channels", async (_req, res) => {
+    if (!BUFFER_ACCESS_TOKEN) {
+      return res.status(400).json({ error: "Set BUFFER_ACCESS_TOKEN first — get a key at publish.buffer.com/settings/api." });
+    }
+    try {
+      res.json({ channels: await bufferListChannels() });
+    } catch (error: any) {
+      res.status(502).json({ error: error?.message || "Buffer channel lookup failed." });
+    }
   });
 
   app.post("/api/growth/generate", async (req, res) => {

@@ -7,8 +7,8 @@
  * to the free channels (Discord + Bluesky). Founder/ops tool.
  */
 import { useState, useEffect } from "react";
-import { fetchGrowth, generateDrafts, decideDraft, GrowthDraft } from "../lib/growth";
-import { Rocket, X, Check, Ban, Loader2, RefreshCw } from "lucide-react";
+import { fetchGrowth, generateDrafts, decideDraft, fetchBufferChannels, GrowthDraft, BufferChannel } from "../lib/growth";
+import { Rocket, X, Check, Ban, Loader2, RefreshCw, Copy, Hash } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -22,6 +22,11 @@ export default function GrowthConsole({ open, onClose }: Props) {
   const [drafts, setDrafts] = useState<GrowthDraft[]>([]);
   const [busy, setBusy] = useState(false);
   const [genBusy, setGenBusy] = useState(false);
+  const [showChannels, setShowChannels] = useState(false);
+  const [chanBusy, setChanBusy] = useState(false);
+  const [channels, setChannels] = useState<BufferChannel[]>([]);
+  const [chanErr, setChanErr] = useState("");
+  const [copied, setCopied] = useState("");
 
   const refresh = async () => {
     const s = await fetchGrowth();
@@ -51,6 +56,23 @@ export default function GrowthConsole({ open, onClose }: Props) {
     setBusy(false);
   };
 
+  const onToggleChannels = async () => {
+    const next = !showChannels;
+    setShowChannels(next);
+    if (next && !channels.length) {
+      setChanBusy(true);
+      setChanErr("");
+      const r = await fetchBufferChannels();
+      if (r.channels) setChannels(r.channels);
+      else setChanErr(r.error || "Could not load channels.");
+      setChanBusy(false);
+    }
+  };
+
+  const copyId = async (id: string) => {
+    try { await navigator.clipboard.writeText(id); setCopied(id); setTimeout(() => setCopied(""), 1200); } catch { /* ignore */ }
+  };
+
   const pending = drafts.filter((d) => d.status === "pending");
   const history = drafts.filter((d) => d.status !== "pending").slice(0, 15);
 
@@ -77,15 +99,53 @@ export default function GrowthConsole({ open, onClose }: Props) {
         {/* Controls + channel status */}
         <div className="px-4 py-2 border-b border-[#2D333B] flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-1.5">{chan(discord, "DISCORD")}{chan(bluesky, "BLUESKY")}{chan(buffer, "BUFFER")}</div>
-          <button
-            onClick={onGenerate}
-            disabled={genBusy}
-            className="cursor-pointer flex items-center gap-1.5 bg-[#00FF66] hover:bg-[#00FF66]/90 text-black text-[10px] font-black px-3 py-1.5 rounded transition disabled:opacity-50"
-          >
-            {genBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-            GENERATE DRAFTS
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onToggleChannels}
+              className="cursor-pointer flex items-center gap-1.5 border border-[#2D333B] text-[#D1D4DC]/70 hover:text-[#00FF66] hover:border-[#00FF66]/50 text-[10px] font-bold px-2.5 py-1.5 rounded transition"
+            >
+              <Hash className="w-3 h-3" /> BUFFER IDS
+            </button>
+            <button
+              onClick={onGenerate}
+              disabled={genBusy}
+              className="cursor-pointer flex items-center gap-1.5 bg-[#00FF66] hover:bg-[#00FF66]/90 text-black text-[10px] font-black px-3 py-1.5 rounded transition disabled:opacity-50"
+            >
+              {genBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              GENERATE DRAFTS
+            </button>
+          </div>
         </div>
+
+        {/* Buffer channel-ID helper: grab the IDs to paste into BUFFER_CHANNEL_IDS (X/LinkedIn/IG). */}
+        {showChannels && (
+          <div className="px-4 py-2 border-b border-[#2D333B] bg-[#0B0E11]/60">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[9px] text-[#FF9900]/70 font-bold tracking-widest">BUFFER CHANNELS → BUFFER_CHANNEL_IDS</span>
+              {chanBusy && <Loader2 className="w-3 h-3 animate-spin text-[#00FF66]" />}
+            </div>
+            {chanErr && <div className="text-[10px] text-[#FF3B30] font-sans py-1">{chanErr}</div>}
+            {!chanBusy && !chanErr && channels.length === 0 && (
+              <div className="text-[10px] text-[#D1D4DC]/50 font-sans py-1">No channels found for this Buffer account.</div>
+            )}
+            {channels.map((c) => (
+              <div key={c.id} className="flex items-center justify-between gap-2 py-1 border-b border-[#2D333B]/40 last:border-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-[9px] uppercase text-[#00FF66]/80 border border-[#00FF66]/30 rounded px-1 shrink-0">{c.service}</span>
+                  <span className="text-[11px] text-[#D1D4DC]/80 truncate">{c.name}</span>
+                </div>
+                <button
+                  onClick={() => copyId(c.id)}
+                  title="Copy channel ID"
+                  className="cursor-pointer flex items-center gap-1 text-[9px] text-[#D1D4DC]/50 hover:text-[#00FF66] shrink-0"
+                >
+                  <span className="font-mono">{c.id.slice(0, 10)}…</span>
+                  {copied === c.id ? <Check className="w-3 h-3 text-[#00FF66]" /> : <Copy className="w-3 h-3" />}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Feed */}
         <div className="flex-1 overflow-auto p-3 space-y-3">
