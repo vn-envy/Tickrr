@@ -9,6 +9,7 @@ set -euo pipefail
 
 : "${PROJECT_ID:?set PROJECT_ID}"
 REGION="${REGION:-us-central1}"
+FIRESTORE_LOCATION="${FIRESTORE_LOCATION:-nam5}"  # US multi-region (use eur3 for EU)
 
 # Optional — default to empty so unset vars don't break --set-env-vars.
 GEMINI_API_KEY="${GEMINI_API_KEY:-}"
@@ -27,12 +28,8 @@ gcloud services enable run.googleapis.com cloudbuild.googleapis.com \
   artifactregistry.googleapis.com cloudscheduler.googleapis.com firestore.googleapis.com
 
 echo "==> Ensuring Firestore database (durable growth-draft store)"
-gcloud firestore databases create --location="$REGION" --quiet 2>/dev/null \
+gcloud firestore databases create --location="$FIRESTORE_LOCATION" --quiet 2>/dev/null \
   || echo "    (Firestore database already exists — skipping)"
-PROJNUM=$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:${PROJNUM}-compute@developer.gserviceaccount.com" \
-  --role="roles/datastore.user" --quiet >/dev/null
 
 echo "==> Deploying tickrr-api (backend)"
 gcloud run deploy tickrr-api --source backend --region "$REGION" --allow-unauthenticated --quiet
@@ -49,6 +46,14 @@ WEB_URL=$(gcloud run services describe tickrr-web --region "$REGION" --format='v
 gcloud run services update tickrr-web --region "$REGION" --quiet \
   --update-env-vars "APP_URL=${WEB_URL}" >/dev/null
 echo "    WEB_URL=$WEB_URL"
+
+# Grant the web service's runtime identity access to Firestore (done now that the SA exists).
+echo "==> Granting Firestore access to the web service account"
+PROJNUM=$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')
+WEB_SA=$(gcloud run services describe tickrr-web --region "$REGION" --format='value(spec.template.spec.serviceAccountName)')
+[ -z "$WEB_SA" ] && WEB_SA="${PROJNUM}-compute@developer.gserviceaccount.com"
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:${WEB_SA}" --role="roles/datastore.user" --quiet >/dev/null
 
 if [ -n "$GROWTH_CRON_SECRET" ]; then
   echo "==> Scheduling autonomous drafting (9am & 5pm ET)"

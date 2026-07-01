@@ -29,12 +29,9 @@ gcloud config set project YOUR_PROJECT_ID
 gcloud services enable run.googleapis.com cloudbuild.googleapis.com \
   artifactregistry.googleapis.com cloudscheduler.googleapis.com firestore.googleapis.com
 
-# Durable growth-draft store (Firestore Native mode) + let Cloud Run's service account use it:
-gcloud firestore databases create --location="$REGION"   # once per project
-PROJNUM=$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:${PROJNUM}-compute@developer.gserviceaccount.com" \
-  --role="roles/datastore.user"
+# Durable growth-draft store (Firestore Native mode). nam5 = US multi-region (eur3 for EU).
+gcloud firestore databases create --location=nam5   # once per project
+# (deploy.sh grants the web service's runtime SA roles/datastore.user after it's deployed.)
 ```
 
 `deploy.sh` does all of the above for you. The web service runs with `GROWTH_STORE=firestore`, so
