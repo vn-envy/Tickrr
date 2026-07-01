@@ -69,6 +69,12 @@
   z-index: 10;
 }
 
+/* Hero readability fade — solid behind the headline, clearing toward the globe on the right.
+   Theme-controlled so text stays legible in both dark and light. */
+.hero-fade {
+  background: linear-gradient(to right, #050608 0%, rgba(5, 6, 8, 0.94) 34%, rgba(5, 6, 8, 0.55) 55%, rgba(5, 6, 8, 0) 80%);
+}
+
 /* ============================================================================
    MONOCHROME LIGHT THEME  (html.theme-light)
    A pure CSS overlay — the dark terminal UI above is untouched. Only three
@@ -160,5 +166,10 @@ html.theme-light .scanline-overlay::after {
 
 /* --- Three.js hero globe: render its coloured wireframe as monochrome --- */
 html.theme-light canvas { filter: grayscale(1) brightness(0.55) contrast(1.15); }
+
+/* --- Hero fade clears toward white in light mode --- */
+html.theme-light .hero-fade {
+  background: linear-gradient(to right, #FFFFFF 0%, rgba(255, 255, 255, 0.94) 34%, rgba(255, 255, 255, 0.55) 55%, rgba(255, 255, 255, 0) 80%);
+}
 
 

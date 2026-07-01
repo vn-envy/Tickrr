@@ -37,7 +37,7 @@ const PLANS = [
     perks: ["Everything in Free", "Deliberation Room (AI experts)", "Live buzz + news signals", "Cross-venue gap alerts", "Priority data refresh"],
   },
   {
-    id: "founder", name: "Founder's Pass", price: "$99", cadence: "once · lifetime", cta: "Become a Founder", highlight: false,
+    id: "founder", name: "Founder's Pass", price: "$99", cadence: "once · lifetime", cta: "Get Founder's Pass", highlight: false,
     perks: ["Everything in Pro — forever", "Founding-member badge", "Locks in launch pricing", "Shape the roadmap"],
   },
 ];
@@ -66,9 +66,13 @@ export default function Home({ onEnter, onGoPro, premium }: Props) {
 
       {/* Hero */}
       <section className="relative min-h-[78vh] flex items-center overflow-hidden">
-        <HeroGlobe />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#050608] via-[#050608]/80 to-transparent" />
-        <div className="relative z-10 px-6 md:px-12 max-w-3xl">
+        {/* Globe lives on the right so it never sits under the headline */}
+        <div className="absolute inset-y-0 right-0 w-full lg:w-[60%] pointer-events-none">
+          <HeroGlobe />
+        </div>
+        {/* Readability fade — solid behind the text, clearing toward the globe */}
+        <div className="absolute inset-0 hero-fade pointer-events-none" />
+        <div className="relative z-10 px-6 md:px-12 max-w-2xl">
           <div className="font-mono text-[11px] tracking-widest text-[#FF9900] mb-3 flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#00FF66] led-blink" />
             TICKER LABS · LIVE FOR FIFA WORLD CUP 2026
@@ -136,39 +140,43 @@ export default function Home({ onEnter, onGoPro, premium }: Props) {
           <div className="font-mono text-[11px] tracking-widest text-[#FF9900] mb-2">PRICING</div>
           <h2 className="font-sans font-black text-3xl text-white">Start free. Go Pro when you want the edge.</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
           {PLANS.map((p) => (
             <div
               key={p.id}
-              className={`rounded-lg p-6 flex flex-col border ${
+              className={`relative rounded-lg p-6 pt-7 flex flex-col border ${
                 p.highlight ? "border-[#00FF66]/60 bg-[#0B0E11]/70 shadow-[0_0_30px_rgba(0,255,102,0.12)]" : "border-[#2D333B] bg-[#0B0E11]/40"
               }`}
             >
               {p.highlight && (
-                <span className="self-start text-[9px] font-mono font-black bg-[#00FF66] text-black px-2 py-0.5 rounded mb-3">MOST POPULAR</span>
+                <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-mono font-black bg-[#00FF66] text-black px-2.5 py-0.5 rounded shadow-[0_0_12px_rgba(0,255,102,0.4)]">MOST POPULAR</span>
               )}
               <h3 className="font-sans font-bold text-white text-lg">{p.name}</h3>
-              <div className="mt-2 mb-4 flex items-end gap-1">
-                <span className="font-sans font-black text-4xl text-white">{p.price}</span>
-                <span className="text-[#D1D4DC]/40 font-mono text-[11px] mb-1.5">{p.cadence}</span>
+              <div className="mt-2 mb-5 flex items-end gap-1.5">
+                <span className="font-sans font-black text-4xl text-white leading-none">{p.price}</span>
+                <span className="text-[#D1D4DC]/40 font-mono text-[11px] mb-1">{p.cadence}</span>
               </div>
-              <ul className="space-y-2 mb-6 flex-1">
+              <ul className="space-y-2.5 mb-6 flex-1">
                 {p.perks.map((perk) => (
-                  <li key={perk} className="flex items-start gap-2 text-[12px] text-[#D1D4DC]/75">
-                    <Check className="w-3.5 h-3.5 text-[#00FF66] mt-0.5 shrink-0" /> {perk}
+                  <li key={perk} className="flex items-start gap-2 text-[12px] text-[#D1D4DC]/75 leading-snug">
+                    <Check className="w-3.5 h-3.5 text-[#00FF66] mt-0.5 shrink-0" /> <span>{perk}</span>
                   </li>
                 ))}
               </ul>
               <button
                 onClick={() => act(p.id)}
                 disabled={premium && p.id !== "free"}
-                className={`cursor-pointer font-mono text-xs font-black px-4 py-2.5 rounded transition disabled:opacity-50 disabled:cursor-default ${
+                className={`cursor-pointer flex items-center justify-center gap-1.5 font-mono text-xs font-black px-4 py-2.5 rounded transition disabled:opacity-50 disabled:cursor-default ${
                   p.highlight
                     ? "bg-[#00FF66] hover:bg-[#00FF66]/90 text-black"
-                    : "border border-[#2D333B] hover:border-[#00FF66]/50 text-[#D1D4DC]"
+                    : "border border-[#2D333B] hover:border-[#00FF66]/50 text-[#D1D4DC] hover:text-[#00FF66]"
                 }`}
               >
-                {premium && p.id !== "free" ? "PRO ACTIVE" : p.cta}
+                {premium && p.id !== "free" ? (
+                  <><Check className="w-3.5 h-3.5" /> ACTIVE</>
+                ) : (
+                  <>{p.cta} <ArrowRight className="w-3.5 h-3.5" /></>
+                )}
               </button>
             </div>
           ))}

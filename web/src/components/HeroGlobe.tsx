@@ -2,8 +2,9 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * Three.js hero — a slowly rotating point-cloud globe (markets across a global tournament),
- * with a faint wireframe and a dark core. Pure decoration; cleans itself up on unmount.
+ * Three.js hero — a slowly rotating point-cloud globe (markets across a global tournament) laced
+ * with a connection network. It breathes (scales gently) and ~10% of the links flicker in
+ * red / green / amber to feel alive. Pure decoration; cleans itself up on unmount.
  */
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
@@ -50,6 +51,54 @@ export default function HeroGlobe() {
     const points = new THREE.Points(geo, mat);
     group.add(points);
 
+    // Connection network — link a random subset of points to their nearest neighbour.
+    const SOURCES = 380;
+    const idx: number[] = [];
+    for (let i = 0; i < N; i++) idx.push(i);
+    for (let i = idx.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [idx[i], idx[j]] = [idx[j], idx[i]]; }
+    const sources = idx.slice(0, SOURCES);
+    const linePos: number[] = [];
+    for (const i of sources) {
+      const ax = positions[i * 3], ay = positions[i * 3 + 1], az = positions[i * 3 + 2];
+      let best = -1, bestD = Infinity;
+      for (let j = 0; j < N; j++) {
+        if (j === i) continue;
+        const dx = positions[j * 3] - ax, dy = positions[j * 3 + 1] - ay, dz = positions[j * 3 + 2] - az;
+        const d = dx * dx + dy * dy + dz * dz;
+        if (d < bestD) { bestD = d; best = j; }
+      }
+      if (best >= 0) linePos.push(ax, ay, az, positions[best * 3], positions[best * 3 + 1], positions[best * 3 + 2]);
+    }
+    const segCount = linePos.length / 6;
+    const lineColors = new Float32Array(segCount * 6);
+    const base = [0.04, 0.42, 0.26]; // calm dim green for the 90%
+    for (let k = 0; k < segCount * 2; k++) {
+      lineColors[k * 3] = base[0]; lineColors[k * 3 + 1] = base[1]; lineColors[k * 3 + 2] = base[2];
+    }
+    const lineGeo = new THREE.BufferGeometry();
+    lineGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(linePos), 3));
+    const lineColorAttr = new THREE.BufferAttribute(lineColors, 3);
+    lineGeo.setAttribute("color", lineColorAttr);
+    const lineMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending });
+    const lines = new THREE.LineSegments(lineGeo, lineMat);
+    group.add(lines);
+
+    // ~10% of the connections flicker between red / green / amber.
+    const PALETTE = [
+      [1.0, 0.22, 0.22], // red
+      [0.15, 1.0, 0.45], // green
+      [1.0, 0.66, 0.10], // amber
+    ];
+    const active: { seg: number; phase: number }[] = [];
+    const activeTarget = Math.max(1, Math.round(segCount * 0.1));
+    const used = new Set<number>();
+    while (active.length < activeTarget) {
+      const s = (Math.random() * segCount) | 0;
+      if (used.has(s)) continue;
+      used.add(s);
+      active.push({ seg: s, phase: Math.random() * Math.PI * 2 });
+    }
+
     // Faint wireframe shell + dark core for depth.
     const wire = new THREE.Mesh(
       new THREE.SphereGeometry(R * 0.99, 36, 24),
@@ -63,10 +112,7 @@ export default function HeroGlobe() {
     group.add(core);
 
     // A couple of orbiting "signal" sparks (orange).
-    const spark = new THREE.Mesh(
-      new THREE.SphereGeometry(0.03, 12, 12),
-      new THREE.MeshBasicMaterial({ color: 0xff9900 }),
-    );
+    const spark = new THREE.Mesh(new THREE.SphereGeometry(0.03, 12, 12), new THREE.MeshBasicMaterial({ color: 0xff9900 }));
     const spark2 = spark.clone();
     scene.add(spark, spark2);
 
@@ -75,6 +121,20 @@ export default function HeroGlobe() {
     const animate = () => {
       t += 0.01;
       group.rotation.y += 0.0016;
+      // Breathing — grows and shrinks slightly so the globe feels alive.
+      group.scale.setScalar(1 + Math.sin(t * 0.9) * 0.035);
+      // Flicker the active connections through the red/green/amber palette.
+      for (const a of active) {
+        const col = PALETTE[Math.floor(t * 0.7 + a.phase) % PALETTE.length];
+        const bright = 0.45 + 0.55 * Math.abs(Math.sin(t * 3 + a.phase * 5));
+        const off = a.seg * 6;
+        for (let v = 0; v < 2; v++) {
+          lineColors[off + v * 3] = col[0] * bright;
+          lineColors[off + v * 3 + 1] = col[1] * bright;
+          lineColors[off + v * 3 + 2] = col[2] * bright;
+        }
+      }
+      lineColorAttr.needsUpdate = true;
       spark.position.set(Math.cos(t) * 1.9, Math.sin(t * 0.7) * 0.6, Math.sin(t) * 1.9);
       spark2.position.set(Math.cos(t * 1.3 + 2) * 1.7, Math.sin(t * 0.9 + 1) * 0.9, Math.sin(t * 1.3 + 2) * 1.7);
       renderer.render(scene, camera);
@@ -96,6 +156,8 @@ export default function HeroGlobe() {
       window.removeEventListener("resize", onResize);
       geo.dispose();
       mat.dispose();
+      lineGeo.dispose();
+      lineMat.dispose();
       renderer.dispose();
       if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
     };
