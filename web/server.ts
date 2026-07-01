@@ -4,6 +4,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import Stripe from "stripe";
 import dotenv from "dotenv";
 import { Draft, getGrowthStore } from "./growthStore";
+import { captureAndHost, MEDIA_MODE, Media } from "./media";
 
 dotenv.config();
 
@@ -116,14 +117,18 @@ async function publishBluesky(text: string): Promise<string> {
 // Buffer (free tier): one integration reaches X / Instagram / LinkedIn / etc. via Buffer's
 // official-partner credentials. GraphQL at api.buffer.com; addToQueue lets Buffer publish at
 // the next slot (keeps us within the free 100/24h · 3,000/30d limits).
-async function bufferCreatePost(channelId: string, text: string): Promise<string> {
+async function bufferCreatePost(channelId: string, text: string, media?: Media): Promise<string> {
   const query = `mutation($input: CreatePostInput!) {
     createPost(input: $input) {
       ... on PostActionSuccess { post { id } }
       ... on MutationError { message }
     }
   }`;
-  const variables = { input: { text: text.slice(0, 900), channelId, schedulingType: "automatic", mode: "addToQueue" } };
+  const input: any = { text: text.slice(0, 900), channelId, schedulingType: "automatic", mode: "addToQueue" };
+  if (media) {
+    input.assets = [media.kind === "video" ? { video: { url: media.url } } : { image: { url: media.url } }];
+  }
+  const variables = { input };
   try {
     const r = await fetch("https://api.buffer.com", {
       method: "POST",
@@ -189,13 +194,13 @@ async function bufferListChannels(): Promise<Array<{ id: string; name: string; s
   return out;
 }
 
-async function publishBuffer(text: string): Promise<string> {
+async function publishBuffer(text: string, media?: Media): Promise<string> {
   if (!BUFFER_ACCESS_TOKEN || !BUFFER_CHANNEL_IDS.length) {
     return "dry-run (set BUFFER_ACCESS_TOKEN + BUFFER_CHANNEL_IDS)";
   }
   const parts: string[] = [];
   for (const ch of BUFFER_CHANNEL_IDS) {
-    parts.push(`${ch.slice(0, 6)}=${await bufferCreatePost(ch, text)}`);
+    parts.push(`${ch.slice(0, 6)}=${await bufferCreatePost(ch, text, media)}`);
   }
   return parts.join(", ");
 }
@@ -216,9 +221,20 @@ async function notifyFounder(count: number): Promise<void> {
 
 async function publishDraft(d: Draft): Promise<void> {
   const results: Record<string, string> = {};
+  // Capture a real screenshot/recording of the live app to attach to the Buffer (X/LinkedIn) post.
+  let media: Media | undefined;
+  if (MEDIA_MODE && d.channels.includes("buffer")) {
+    try {
+      media = await captureAndHost();
+      d.mediaUrl = media.url;
+      d.mediaType = media.kind;
+    } catch (e: any) {
+      results.media = `capture failed: ${e?.message || e}`;
+    }
+  }
   if (d.channels.includes("discord")) results.discord = await publishDiscord(d.text);
   if (d.channels.includes("bluesky")) results.bluesky = await publishBluesky(d.text);
-  if (d.channels.includes("buffer")) results.buffer = await publishBuffer(d.text);
+  if (d.channels.includes("buffer")) results.buffer = await publishBuffer(d.text, media);
   d.results = results;
   d.status = "published";
 }
@@ -472,6 +488,7 @@ Produce a prediction-market intelligence report on this market. Explain what the
         pending: drafts.filter((d) => d.status === "pending").length,
         published: drafts.filter((d) => d.status === "published").length,
         gemini: Boolean(process.env.GEMINI_API_KEY),
+        media: MEDIA_MODE || "off",
         channels: {
           discord: Boolean(DISCORD_WEBHOOK_URL),
           bluesky: Boolean(BLUESKY_HANDLE && BLUESKY_APP_PASSWORD),

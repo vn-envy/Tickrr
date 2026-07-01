@@ -18,6 +18,8 @@ export interface Draft {
   channels: string[];
   status: "pending" | "rejected" | "published";
   results?: Record<string, string>;
+  mediaUrl?: string;
+  mediaType?: "image" | "video";
 }
 
 export interface GrowthStore {

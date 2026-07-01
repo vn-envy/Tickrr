@@ -11,6 +11,8 @@ export interface GrowthDraft {
   channels: string[];
   status: string;
   results?: Record<string, string>;
+  mediaUrl?: string;
+  mediaType?: "image" | "video";
 }
 
 export interface GrowthState {

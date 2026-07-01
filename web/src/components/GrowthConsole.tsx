@@ -198,6 +198,11 @@ export default function GrowthConsole({ open, onClose }: Props) {
                   {Object.entries(d.results).map(([k, v]) => `${k}: ${v}`).join("  ·  ")}
                 </div>
               )}
+              {d.mediaUrl && (d.mediaType === "video" ? (
+                <a href={d.mediaUrl} target="_blank" rel="noreferrer" className="text-[8px] text-[#00FF66]/70 underline mt-1 inline-block">attached recording ↗</a>
+              ) : (
+                <img src={d.mediaUrl} alt="attached capture" className="mt-1 rounded border border-[#2D333B] max-h-24" />
+              ))}
             </div>
           ))}
         </div>
