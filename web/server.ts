@@ -29,6 +29,10 @@ const BLUESKY_HANDLE = process.env.BLUESKY_HANDLE || "";
 const BLUESKY_APP_PASSWORD = process.env.BLUESKY_APP_PASSWORD || "";
 const BUFFER_ACCESS_TOKEN = process.env.BUFFER_ACCESS_TOKEN || "";
 const BUFFER_CHANNEL_IDS = (process.env.BUFFER_CHANNEL_IDS || "").split(",").map((s) => s.trim()).filter(Boolean);
+// Scheduler: a shared secret guards the public cron trigger (Cloud Scheduler hits it over HTTP).
+const GROWTH_CRON_SECRET = process.env.GROWTH_CRON_SECRET || "";
+// Founder ping: a Discord webhook to notify you when new drafts land in the approval queue.
+const GROWTH_NOTIFY_WEBHOOK = process.env.GROWTH_NOTIFY_WEBHOOK || "";
 const GROWTH_FILE = path.join(process.cwd(), "data", "growth.json");
 
 interface Draft {
@@ -169,6 +173,20 @@ async function publishBuffer(text: string): Promise<string> {
     parts.push(`${ch.slice(0, 6)}=${await bufferCreatePost(ch, text)}`);
   }
   return parts.join(", ");
+}
+
+// Founder notification — pings a Discord webhook when the agent drafts land for approval.
+// This closes the autonomy loop: the agent works on a schedule, you only get pinged to approve.
+async function notifyFounder(count: number): Promise<void> {
+  if (!GROWTH_NOTIFY_WEBHOOK) return;
+  const content = `🔔 Tickrr Growth — ${count} new draft${count === 1 ? "" : "s"} awaiting approval in the Growth Console. Approve to publish (Discord · Bluesky · Buffer → X/LinkedIn/Instagram). Intel only.`;
+  try {
+    await fetch(GROWTH_NOTIFY_WEBHOOK, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content }),
+    });
+  } catch { /* best-effort */ }
 }
 
 async function publishDraft(d: Draft): Promise<void> {
@@ -451,10 +469,29 @@ Produce a prediction-market intelligence report on this market. Explain what the
     res.status(400).json({ error: "Unknown action." });
   });
 
-  // Optional autonomous drafting cadence — approval is still required before anything posts.
+  // Autonomous drafting trigger for external schedulers (Cloud Scheduler, cron, GitHub Actions…).
+  // Guarded by GROWTH_CRON_SECRET. Generates drafts + pings you — approval still gates publishing.
+  app.post("/api/growth/cron", async (req, res) => {
+    if (!GROWTH_CRON_SECRET) return res.status(403).json({ error: "Cron disabled — set GROWTH_CRON_SECRET." });
+    const key = req.get("x-cron-key") || String(req.query.key || "");
+    if (key !== GROWTH_CRON_SECRET) return res.status(401).json({ error: "Unauthorized." });
+    const count = Math.max(1, Math.min(5, Number(req.query.count) || Number(req.body?.count) || 3));
+    try {
+      const created = await generateDrafts(count);
+      if (created.length) await notifyFounder(created.length);
+      const pending = loadDrafts().filter((d) => d.status === "pending").length;
+      res.json({ created: created.length, pending });
+    } catch (error: any) {
+      res.status(500).json({ error: error?.message || "cron failed" });
+    }
+  });
+
+  // Optional in-process cadence (free, local) — same behavior without an external scheduler.
   if (process.env.GROWTH_AUTODRAFT === "1") {
     const hours = Number(process.env.GROWTH_AUTODRAFT_HOURS) || 6;
-    setInterval(() => { generateDrafts(3).catch(() => {}); }, hours * 3600 * 1000);
+    setInterval(() => {
+      generateDrafts(3).then((c) => { if (c.length) return notifyFounder(c.length); }).catch(() => {});
+    }, hours * 3600 * 1000);
     console.log(`[TICKRR] Growth auto-draft enabled every ${hours}h (approval required to publish).`);
   }
 
