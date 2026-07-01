@@ -27,6 +27,14 @@ echo "==> Enabling APIs"
 gcloud services enable run.googleapis.com cloudbuild.googleapis.com \
   artifactregistry.googleapis.com cloudscheduler.googleapis.com firestore.googleapis.com
 
+# Fresh projects: the default compute SA lacks Cloud Build permissions, so `run deploy --source`
+# fails to build. Grant the builder role up front. https://cloud.google.com/build/docs/...
+echo "==> Granting Cloud Build permissions to the default compute service account"
+PROJNUM=$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:${PROJNUM}-compute@developer.gserviceaccount.com" \
+  --role="roles/cloudbuild.builds.builder" --quiet >/dev/null
+
 echo "==> Ensuring Firestore database (durable growth-draft store)"
 gcloud firestore databases create --location="$FIRESTORE_LOCATION" --quiet 2>/dev/null \
   || echo "    (Firestore database already exists — skipping)"
