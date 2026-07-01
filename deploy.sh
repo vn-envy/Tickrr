@@ -47,13 +47,20 @@ echo "    API_URL=$API_URL"
 echo "==> Deploying tickrr-web (frontend + server)"
 gcloud run deploy tickrr-web --source web --region "$REGION" --allow-unauthenticated \
   --min-instances 1 --quiet \
-  --set-env-vars "GROWTH_STORE=firestore,MARKET_API=${API_URL},GEMINI_API_KEY=${GEMINI_API_KEY},STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY},GROWTH_CRON_SECRET=${GROWTH_CRON_SECRET},GROWTH_NOTIFY_WEBHOOK=${GROWTH_NOTIFY_WEBHOOK},DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL},BLUESKY_HANDLE=${BLUESKY_HANDLE},BLUESKY_APP_PASSWORD=${BLUESKY_APP_PASSWORD},BUFFER_ACCESS_TOKEN=${BUFFER_ACCESS_TOKEN},BUFFER_CHANNEL_IDS=${BUFFER_CHANNEL_IDS}"
+  --set-env-vars "GROWTH_STORE=firestore,MARKET_API=${API_URL},GEMINI_API_KEY=${GEMINI_API_KEY},STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY},GROWTH_CRON_SECRET=${GROWTH_CRON_SECRET},GROWTH_NOTIFY_WEBHOOK=${GROWTH_NOTIFY_WEBHOOK},DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL},BLUESKY_HANDLE=${BLUESKY_HANDLE},BLUESKY_APP_PASSWORD=${BLUESKY_APP_PASSWORD},BUFFER_ACCESS_TOKEN=${BUFFER_ACCESS_TOKEN}"
 WEB_URL=$(gcloud run services describe tickrr-web --region "$REGION" --format='value(status.url)')
 
 # Point Stripe redirects at the real URL.
 gcloud run services update tickrr-web --region "$REGION" --quiet \
   --update-env-vars "APP_URL=${WEB_URL}" >/dev/null
 echo "    WEB_URL=$WEB_URL"
+
+# BUFFER_CHANNEL_IDS is comma-separated — set it with a custom delimiter (^:^) so gcloud
+# doesn't read the commas as separate env vars.
+if [ -n "$BUFFER_CHANNEL_IDS" ]; then
+  gcloud run services update tickrr-web --region "$REGION" --quiet \
+    --update-env-vars "^:^BUFFER_CHANNEL_IDS=${BUFFER_CHANNEL_IDS}" >/dev/null
+fi
 
 # Grant the web service's runtime identity access to Firestore (done now that the SA exists).
 echo "==> Granting Firestore access to the web service account"
