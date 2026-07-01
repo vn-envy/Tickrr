@@ -17,14 +17,16 @@ import DeliberationRoom from "./components/DeliberationRoom";
 import DislocationBoard from "./components/DislocationBoard";
 import PlayerDossier from "./components/PlayerDossier";
 import Home from "./components/Home";
+import GrowthConsole from "./components/GrowthConsole";
 import { isPremium, setPremium, goPro } from "./lib/premium";
-import { Globe, RefreshCw, Layers, Lock } from "lucide-react";
+import { Globe, RefreshCw, Layers, Lock, Rocket } from "lucide-react";
 
 export default function App() {
   const [entities, setEntities] = useState<SportsEntity[]>(INITIAL_SPORTS_ENTITIES);
   const [activeEntity, setActiveEntity] = useState<SportsEntity>(INITIAL_SPORTS_ENTITIES[0]);
   const [sportFilter, setSportFilter] = useState<string | null>(null);
   const [delibOpen, setDelibOpen] = useState(false);
+  const [growthOpen, setGrowthOpen] = useState(false);
   const [entered, setEntered] = useState(false);
   const [pro, setPro] = useState(isPremium());
 
@@ -131,6 +133,13 @@ export default function App() {
         {/* Right stats indicators */}
         <div className="flex items-center gap-5 font-mono text-[10px] text-[#D1D4DC]/40">
           <button
+            onClick={() => setGrowthOpen(true)}
+            className="cursor-pointer flex items-center gap-1.5 bg-[#FF9900]/10 hover:bg-[#FF9900]/20 border border-[#FF9900]/40 text-[#FF9900] text-[10px] font-bold px-2.5 py-1 rounded transition"
+          >
+            <Rocket className="w-3 h-3" />
+            GROWTH
+          </button>
+          <button
             onClick={() => setDelibOpen(true)}
             className="cursor-pointer flex items-center gap-1.5 bg-[#00FF66]/10 hover:bg-[#00FF66]/20 border border-[#00FF66]/40 text-[#00FF66] text-[10px] font-bold px-2.5 py-1 rounded transition terminal-glow-green"
           >
@@ -230,6 +239,7 @@ export default function App() {
       </footer>
 
       <DeliberationRoom entity={activeEntity} open={delibOpen} onClose={() => setDelibOpen(false)} />
+      <GrowthConsole open={growthOpen} onClose={() => setGrowthOpen(false)} />
     </div>
   );
 }

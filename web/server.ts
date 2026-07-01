@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import Stripe from "stripe";
@@ -17,6 +18,124 @@ const PLANS: Record<string, { label: string; amount: number; mode: "subscription
   pro: { label: "Tickrr Pro", amount: 1900, mode: "subscription", interval: "month" },
   founder: { label: "Tickrr Founder's Pass — lifetime", amount: 9900, mode: "payment" },
 };
+
+// ---- Growth engine (free tier): draft from live signals -> you approve -> publish -----------
+// Publishes only to Discord (webhook) + Bluesky (app password) — both free, no app review.
+// Dry-runs (logs, no post) when credentials are absent, so the loop is fully demoable free.
+
+const MARKET_API = process.env.MARKET_API || "http://localhost:8000";
+const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL || "";
+const BLUESKY_HANDLE = process.env.BLUESKY_HANDLE || "";
+const BLUESKY_APP_PASSWORD = process.env.BLUESKY_APP_PASSWORD || "";
+const GROWTH_FILE = path.join(process.cwd(), "data", "growth.json");
+
+interface Draft {
+  id: string;
+  createdAt: string;
+  source: string;
+  text: string;
+  channels: string[];
+  status: "pending" | "rejected" | "published";
+  results?: Record<string, string>;
+}
+
+function loadDrafts(): Draft[] {
+  try { return JSON.parse(fs.readFileSync(GROWTH_FILE, "utf8")); } catch { return []; }
+}
+function saveDrafts(drafts: Draft[]): void {
+  try {
+    fs.mkdirSync(path.dirname(GROWTH_FILE), { recursive: true });
+    fs.writeFileSync(GROWTH_FILE, JSON.stringify(drafts, null, 2));
+  } catch (e) { console.error("[TICKRR] growth save failed:", e); }
+}
+
+interface Signal { market: string; label: string; prob: number; rationale: string; }
+
+async function draftCopy(s: Signal): Promise<string> {
+  const base = `⚡ ${s.market}: ${s.label}. Market implies ${s.prob.toFixed(1)}%.${s.rationale ? " " + s.rationale : ""}`;
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return `${base}\n\nTracked live on Tickrr — the prediction-market terminal. Intel only, not advice. #WorldCup`;
+  }
+  try {
+    const ai = new GoogleGenAI({ apiKey, httpOptions: { headers: { "User-Agent": "aistudio-build" } } });
+    const resp: any = await ai.models.generateContent({
+      model: MODEL,
+      contents: `Write ONE punchy social post (max 240 characters) about this prediction-market signal for Tickrr, a FIFA World Cup prediction-market intelligence terminal. Hook the reader with the edge/dislocation, mention it's tracked live on Tickrr, add 1-2 relevant hashtags. INTEL ONLY — never tell anyone to bet and never say "bet". Signal: ${base}`,
+      config: { systemInstruction: "You are Tickrr's growth copywriter. Punchy, credible, intel-only. Never advise betting or promise outcomes." },
+    });
+    return (resp.text || base).trim();
+  } catch {
+    return base;
+  }
+}
+
+async function generateDrafts(count = 3): Promise<Draft[]> {
+  let signals: Signal[] = [];
+  try {
+    const r = await fetch(`${MARKET_API}/api/dislocations?query=World%20Cup&limit=40`);
+    if (r.ok) {
+      const data: any[] = await r.json();
+      signals = data.slice(0, count).map((m) => ({
+        market: m.market?.group_title || m.market?.question || "Market",
+        label: m.dislocation?.label || "Signal",
+        prob: (m.fair_value?.implied_prob || 0) * 100,
+        rationale: m.dislocation?.rationale || "",
+      }));
+    }
+  } catch { /* market backend offline — fall through to a generic draft */ }
+  if (!signals.length) {
+    signals = [{ market: "World Cup", label: "Daily read", prob: 0, rationale: "Live dislocations, cross-venue gaps, and player dossiers." }];
+  }
+  const fresh: Draft[] = [];
+  for (const s of signals) {
+    fresh.push({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      createdAt: new Date().toISOString(),
+      source: `${s.market} · ${s.label}`,
+      text: await draftCopy(s),
+      channels: ["discord", "bluesky"],
+      status: "pending",
+    });
+  }
+  saveDrafts([...fresh, ...loadDrafts()].slice(0, 200));
+  return fresh;
+}
+
+async function publishDiscord(text: string): Promise<string> {
+  if (!DISCORD_WEBHOOK_URL) return "dry-run (set DISCORD_WEBHOOK_URL)";
+  try {
+    const r = await fetch(DISCORD_WEBHOOK_URL, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: text.slice(0, 1900) }),
+    });
+    return r.ok ? "posted" : `error ${r.status}`;
+  } catch (e: any) { return `error ${e?.message || e}`; }
+}
+
+async function publishBluesky(text: string): Promise<string> {
+  if (!BLUESKY_HANDLE || !BLUESKY_APP_PASSWORD) return "dry-run (set BLUESKY_HANDLE + BLUESKY_APP_PASSWORD)";
+  try {
+    const s = await fetch("https://bsky.social/xrpc/com.atproto.server.createSession", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier: BLUESKY_HANDLE, password: BLUESKY_APP_PASSWORD }),
+    });
+    if (!s.ok) return `auth error ${s.status}`;
+    const sess: any = await s.json();
+    const r = await fetch("https://bsky.social/xrpc/com.atproto.repo.createRecord", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${sess.accessJwt}` },
+      body: JSON.stringify({ repo: sess.did, collection: "app.bsky.feed.post", record: { $type: "app.bsky.feed.post", text: text.slice(0, 300), createdAt: new Date().toISOString() } }),
+    });
+    return r.ok ? "posted" : `error ${r.status}`;
+  } catch (e: any) { return `error ${e?.message || e}`; }
+}
+
+async function publishDraft(d: Draft): Promise<void> {
+  const results: Record<string, string> = {};
+  if (d.channels.includes("discord")) results.discord = await publishDiscord(d.text);
+  if (d.channels.includes("bluesky")) results.bluesky = await publishBluesky(d.text);
+  d.results = results;
+  d.status = "published";
+}
 
 interface MarketContext {
   name: string;
@@ -253,6 +372,47 @@ Produce a prediction-market intelligence report on this market. Explain what the
       res.json({ paid: false });
     }
   });
+
+  // Growth engine: approval queue + generate + approve/reject (free: Discord + Bluesky).
+  app.get("/api/growth/drafts", (_req, res) => {
+    res.json({
+      discord: Boolean(DISCORD_WEBHOOK_URL),
+      bluesky: Boolean(BLUESKY_HANDLE && BLUESKY_APP_PASSWORD),
+      drafts: loadDrafts().slice(0, 50),
+    });
+  });
+
+  app.post("/api/growth/generate", async (req, res) => {
+    const count = Math.max(1, Math.min(5, Number(req.body?.count) || 3));
+    try { res.json({ created: await generateDrafts(count) }); }
+    catch (error: any) { res.status(500).json({ error: error?.message || "generate failed" }); }
+  });
+
+  app.post("/api/growth/drafts/:id/:action", async (req, res) => {
+    const { id, action } = req.params;
+    const drafts = loadDrafts();
+    const draft = drafts.find((d) => d.id === id);
+    if (!draft) return res.status(404).json({ error: "Draft not found." });
+    if (draft.status !== "pending") return res.json(draft);
+    if (action === "reject") {
+      draft.status = "rejected";
+      saveDrafts(drafts);
+      return res.json(draft);
+    }
+    if (action === "approve") {
+      await publishDraft(draft); // publishes now; dry-runs if creds absent
+      saveDrafts(drafts);
+      return res.json(draft);
+    }
+    res.status(400).json({ error: "Unknown action." });
+  });
+
+  // Optional autonomous drafting cadence — approval is still required before anything posts.
+  if (process.env.GROWTH_AUTODRAFT === "1") {
+    const hours = Number(process.env.GROWTH_AUTODRAFT_HOURS) || 6;
+    setInterval(() => { generateDrafts(3).catch(() => {}); }, hours * 3600 * 1000);
+    console.log(`[TICKRR] Growth auto-draft enabled every ${hours}h (approval required to publish).`);
+  }
 
   // Vite integration
   if (process.env.NODE_ENV !== "production") {
