@@ -18,6 +18,7 @@ import DislocationBoard from "./components/DislocationBoard";
 import PlayerDossier from "./components/PlayerDossier";
 import Home from "./components/Home";
 import GrowthConsole from "./components/GrowthConsole";
+import ThemeToggle from "./components/ThemeToggle";
 import { isPremium, setPremium, goPro } from "./lib/premium";
 import { Globe, RefreshCw, Layers, Lock, Rocket } from "lucide-react";
 
@@ -132,6 +133,7 @@ export default function App() {
 
         {/* Right stats indicators */}
         <div className="flex items-center gap-5 font-mono text-[10px] text-[#D1D4DC]/40">
+          <ThemeToggle />
           <button
             onClick={() => setGrowthOpen(true)}
             className="cursor-pointer flex items-center gap-1.5 bg-[#FF9900]/10 hover:bg-[#FF9900]/20 border border-[#FF9900]/40 text-[#FF9900] text-[10px] font-bold px-2.5 py-1 rounded transition"

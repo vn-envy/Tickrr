@@ -6,6 +6,7 @@
  */
 import TickrrLogo from "./TickrrLogo";
 import HeroGlobe from "./HeroGlobe";
+import ThemeToggle from "./ThemeToggle";
 import {
   Radar, GitCompareArrows, User, ShieldCheck, Sparkles, LineChart,
   ArrowRight, Check, Lock,
@@ -50,6 +51,7 @@ export default function Home({ onEnter, onGoPro, premium }: Props) {
       <header className="relative z-20 flex items-center justify-between px-5 py-4 border-b border-[#2D333B]/60">
         <TickrrLogo />
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           {premium && (
             <span className="text-[9px] font-mono font-black bg-[#00FF66] text-black px-2 py-1 rounded">PRO ACTIVE</span>
           )}

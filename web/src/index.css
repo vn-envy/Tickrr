@@ -69,4 +69,96 @@
   z-index: 10;
 }
 
+/* ============================================================================
+   MONOCHROME LIGHT THEME  (html.theme-light)
+   A pure CSS overlay — the dark terminal UI above is untouched. Only three
+   families of ink: white surfaces, black actions/emphasis, and a grey ramp.
+   Keyed on substring class matching so every opacity variant is covered.
+   ============================================================================ */
+
+/* --- Surfaces: near-blacks -> white / light greys --- */
+html.theme-light [class*="bg-[#050608]"] { background-color: #FFFFFF !important; }
+html.theme-light [class*="bg-[#0B0E11]"] { background-color: #F4F4F5 !important; }
+html.theme-light [class*="bg-[#1C2128]"] { background-color: #ECECEF !important; }
+
+/* --- Borders -> light grey --- */
+html.theme-light [class*="border-[#2D333B]"] { border-color: #DCDCE1 !important; }
+html.theme-light [class*="border-[#00FF66]"],
+html.theme-light [class*="border-[#FF9900]"],
+html.theme-light [class*="border-[#FF3B30]"] { border-color: #C7C7CE !important; }
+
+/* --- Accent backgrounds: subtle fills -> light grey (must come before the solids) --- */
+html.theme-light [class*="bg-[#00FF66]"],
+html.theme-light [class*="bg-[#FF9900]"],
+html.theme-light [class*="bg-[#FF3B30]"] { background-color: #ECECEF !important; }
+
+/* --- Accent backgrounds: solid / strong (buttons, badges) -> black --- */
+html.theme-light [class*="bg-[#00FF66]"]:not([class*="bg-[#00FF66]/"]),
+html.theme-light [class*="bg-[#00FF66]/9"],
+html.theme-light [class*="bg-[#FF9900]"]:not([class*="bg-[#FF9900]/"]),
+html.theme-light [class*="bg-[#FF9900]/9"],
+html.theme-light [class*="bg-[#FF3B30]"]:not([class*="bg-[#FF3B30]/"]) { background-color: #111113 !important; }
+
+/* --- Text on solid black action buttons -> white --- */
+html.theme-light [class*="bg-[#00FF66]"].text-black,
+html.theme-light [class*="bg-[#FF9900]"].text-black,
+html.theme-light [class*="bg-[#FF3B30]"].text-black { color: #FFFFFF !important; }
+
+/* --- Primary text (#D1D4DC) with a grey hierarchy ramp (higher opacity = darker) --- */
+html.theme-light [class*="text-[#D1D4DC]"]    { color: #18181B !important; }
+html.theme-light [class*="text-[#D1D4DC]/90"] { color: #2B2B2F !important; }
+html.theme-light [class*="text-[#D1D4DC]/80"] { color: #3D3D42 !important; }
+html.theme-light [class*="text-[#D1D4DC]/75"] { color: #454549 !important; }
+html.theme-light [class*="text-[#D1D4DC]/70"] { color: #4E4E53 !important; }
+html.theme-light [class*="text-[#D1D4DC]/60"] { color: #606065 !important; }
+html.theme-light [class*="text-[#D1D4DC]/50"] { color: #727277 !important; }
+html.theme-light [class*="text-[#D1D4DC]/40"] { color: #86868B !important; }
+html.theme-light [class*="text-[#D1D4DC]/30"] { color: #9A9A9F !important; }
+html.theme-light [class*="text-[#D1D4DC]/20"] { color: #AEAEB3 !important; }
+
+/* --- Accent text (#FF9900 / #00FF66 / #FF3B30) -> black, with a grey ramp --- */
+html.theme-light [class*="text-[#FF9900]"],
+html.theme-light [class*="text-[#00FF66]"],
+html.theme-light [class*="text-[#FF3B30]"]    { color: #111113 !important; }
+html.theme-light [class*="text-[#FF9900]/80"],
+html.theme-light [class*="text-[#00FF66]/80"] { color: #37373B !important; }
+html.theme-light [class*="text-[#FF9900]/70"],
+html.theme-light [class*="text-[#00FF66]/70"] { color: #4A4A4F !important; }
+html.theme-light [class*="text-[#00FF66]/60"] { color: #5D5D62 !important; }
+html.theme-light [class*="text-[#00FF66]/50"] { color: #707075 !important; }
+html.theme-light [class*="text-[#00FF66]/30"] { color: #9A9A9F !important; }
+html.theme-light [class*="text-[#00FF66]/25"] { color: #A3A3A8 !important; }
+
+/* --- Pure-white headings/emphasis -> near-black --- */
+html.theme-light .text-white { color: #0F0F11 !important; }
+
+/* --- Placeholder --- */
+html.theme-light [class*="placeholder-[#00FF66]"]::placeholder { color: #A3A3A8 !important; }
+
+/* --- Hero gradient overlay fades to white instead of black --- */
+html.theme-light [class*="from-[#050608]"] { --tw-gradient-from: #FFFFFF var(--tw-gradient-from-position) !important; }
+html.theme-light [class*="via-[#050608]"]  { --tw-gradient-via:  #FFFFFF var(--tw-gradient-via-position) !important; }
+
+/* --- Kill coloured glows; give a soft neutral shadow instead --- */
+html.theme-light [class*="shadow-[0_0"] { box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05) !important; }
+html.theme-light .terminal-glow-green,
+html.theme-light .terminal-glow-orange { text-shadow: none !important; }
+
+/* --- Frosted panels --- */
+html.theme-light .glass-panel { background: rgba(255,255,255,0.78) !important; border-color: #DCDCE1 !important; }
+html.theme-light .glass-panel-light { background: rgba(255,255,255,0.60) !important; border-color: rgba(220,220,225,0.7) !important; }
+
+/* --- Scrollbars --- */
+html.theme-light ::-webkit-scrollbar-track { background: #F4F4F5; }
+html.theme-light ::-webkit-scrollbar-thumb { background: #C7C7CE; }
+html.theme-light ::-webkit-scrollbar-thumb:hover { background: #A9A9B0; }
+
+/* --- Scanline texture: drop the RGB tint, keep a faint monochrome CRT grid --- */
+html.theme-light .scanline-overlay::after {
+  background: linear-gradient(rgba(0,0,0,0) 50%, rgba(0,0,0,0.035) 50%), linear-gradient(90deg, rgba(0,0,0,0.02), rgba(0,0,0,0.012), rgba(0,0,0,0.02));
+}
+
+/* --- Three.js hero globe: render its coloured wireframe as monochrome --- */
+html.theme-light canvas { filter: grayscale(1) brightness(0.55) contrast(1.15); }
+
 
