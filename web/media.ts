@@ -57,8 +57,8 @@ export async function captureScreenshot(url = CAPTURE_URL): Promise<Buffer> {
   }
 }
 
-/** Record a short clip of the live app (WebM). Note: X/LinkedIn prefer MP4 — WebM may need
- *  transcoding (ffmpeg) before it's accepted on all networks. */
+/** Record a short clip of the live app (Playwright outputs WebM). captureAndHost() transcodes
+ *  this to MP4 via transcodeToMp4() before hosting, since X/LinkedIn require MP4. */
 export async function captureRecording(url = CAPTURE_URL, seconds = RECORD_SECONDS): Promise<Buffer> {
   const fs = await import("fs");
   const os = await import("os");
@@ -80,11 +80,38 @@ export async function captureRecording(url = CAPTURE_URL, seconds = RECORD_SECON
   }
 }
 
+/** Transcode Playwright's WebM to a social-friendly MP4 (H.264/yuv420p, faststart) with ffmpeg.
+ *  X/LinkedIn require MP4; WebM is often rejected. Uses the bundled ffmpeg-static binary. */
+export async function transcodeToMp4(webm: Buffer): Promise<Buffer> {
+  const fs = await import("fs");
+  const os = await import("os");
+  const path = await import("path");
+  const { spawn } = await import("child_process");
+  const ffmpegPath = ((await import("ffmpeg-static")).default as unknown as string) || "ffmpeg";
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tickrr-mp4-"));
+  const inPath = path.join(dir, "in.webm");
+  const outPath = path.join(dir, "out.mp4");
+  fs.writeFileSync(inPath, webm);
+  await new Promise<void>((resolve, reject) => {
+    const p = spawn(ffmpegPath, [
+      "-y", "-i", inPath,
+      "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
+      "-pix_fmt", "yuv420p", "-r", "30", "-movflags", "+faststart", "-an",
+      "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2",
+      outPath,
+    ]);
+    p.on("error", reject);
+    p.on("close", (code) => (code === 0 ? resolve() : reject(new Error(`ffmpeg exited ${code}`))));
+  });
+  return fs.readFileSync(outPath);
+}
+
 /** Capture the configured media of the live app and host it — returns a Buffer-ready asset URL. */
 export async function captureAndHost(): Promise<Media> {
   if (MEDIA_MODE === "recording") {
-    const bytes = await captureRecording();
-    return { url: await uploadPublic(bytes, "video/webm", "webm"), kind: "video" };
+    const webm = await captureRecording();
+    const mp4 = await transcodeToMp4(webm); // WebM -> MP4 so X/LinkedIn accept it
+    return { url: await uploadPublic(mp4, "video/mp4", "mp4"), kind: "video" };
   }
   const bytes = await captureScreenshot();
   return { url: await uploadPublic(bytes, "image/png", "png"), kind: "image" };
