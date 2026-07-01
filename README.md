@@ -55,8 +55,10 @@ Monorepo, two services:
 - **Gemini** (`@google/genai`, model `gemini-2.5-flash`) powers the "why it moved" intel, the
   Deliberation Room, and social-post drafting — with **Google Search grounding** for cited,
   fresh answers. Runs in a graceful mock mode when no key is present, so the app is always demoable.
-- **Production target: Google Cloud Run**, with **Google Cloud Scheduler** driving the
-  autonomous growth loop on a free-tier cadence (see [`docs/CLOUD_SCHEDULER.md`](docs/CLOUD_SCHEDULER.md)).
+- **Runs on Google Cloud Run** (two services: `tickrr-api` + `tickrr-web`), with **Google Cloud
+  Scheduler** driving the autonomous growth loop on a free-tier cadence. One-command deploy via
+  [`deploy.sh`](deploy.sh) — see [`docs/DEPLOY.md`](docs/DEPLOY.md) and
+  [`docs/CLOUD_SCHEDULER.md`](docs/CLOUD_SCHEDULER.md).
 
 ---
 

@@ -1,7 +1,6 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
-import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import Stripe from "stripe";
 import dotenv from "dotenv";
@@ -323,7 +322,7 @@ async function groundedExpert(ai: GoogleGenAI, persona: string, content: string)
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   app.use(express.json());
 
@@ -536,8 +535,23 @@ Produce a prediction-market intelligence report on this market. Explain what the
     console.log(`[TICKRR] Growth auto-draft enabled every ${hours}h (approval required to publish).`);
   }
 
+  // Proxy read-only market data from the FastAPI backend so the browser stays same-origin
+  // (no CORS, no compile-time backend URL). MARKET_API is a runtime env var.
+  for (const p of ["/api/markets", "/api/history", "/api/player"]) {
+    app.get(p, async (req, res) => {
+      try {
+        const r = await fetch(`${MARKET_API}${req.originalUrl}`);
+        const body = await r.text();
+        res.status(r.status).type("application/json").send(body);
+      } catch (error: any) {
+        res.status(502).json({ error: `Market backend unavailable: ${error?.message || error}` });
+      }
+    });
+  }
+
   // Vite integration
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",

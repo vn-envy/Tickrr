@@ -8,8 +8,9 @@
  */
 import { SportsEntity } from "./types";
 
-const API_BASE =
-  (import.meta as any).env?.VITE_API_BASE || "http://localhost:8000";
+// Same-origin by default: the web server proxies /api/markets|history|player to the backend.
+// Override with VITE_API_BASE only if you want the browser to hit the backend directly.
+const API_BASE = (import.meta as any).env?.VITE_API_BASE || "";
 
 interface FairValue {
   implied_prob: number;
