@@ -18,6 +18,7 @@ interface Props {
 export default function GrowthConsole({ open, onClose }: Props) {
   const [discord, setDiscord] = useState(false);
   const [bluesky, setBluesky] = useState(false);
+  const [buffer, setBuffer] = useState(false);
   const [drafts, setDrafts] = useState<GrowthDraft[]>([]);
   const [busy, setBusy] = useState(false);
   const [genBusy, setGenBusy] = useState(false);
@@ -26,6 +27,7 @@ export default function GrowthConsole({ open, onClose }: Props) {
     const s = await fetchGrowth();
     setDiscord(s.discord);
     setBluesky(s.bluesky);
+    setBuffer(s.buffer);
     setDrafts(s.drafts);
   };
 
@@ -74,7 +76,7 @@ export default function GrowthConsole({ open, onClose }: Props) {
 
         {/* Controls + channel status */}
         <div className="px-4 py-2 border-b border-[#2D333B] flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5">{chan(discord, "DISCORD")}{chan(bluesky, "BLUESKY")}</div>
+          <div className="flex items-center gap-1.5">{chan(discord, "DISCORD")}{chan(bluesky, "BLUESKY")}{chan(buffer, "BUFFER")}</div>
           <button
             onClick={onGenerate}
             disabled={genBusy}
@@ -141,7 +143,7 @@ export default function GrowthConsole({ open, onClose }: Props) {
         </div>
 
         <div className="text-center text-[#00FF66]/25 text-[8px] pb-1.5 pt-1 tracking-wider border-t border-[#2D333B]">
-          AGENT DRAFTS · YOU APPROVE · AUTO-POSTS TO DISCORD + BLUESKY (FREE) · INTEL ONLY
+          AGENT DRAFTS · YOU APPROVE · AUTO-POSTS TO DISCORD + BLUESKY + BUFFER (X/IG/LINKEDIN…) · FREE · INTEL ONLY
         </div>
       </div>
     </div>

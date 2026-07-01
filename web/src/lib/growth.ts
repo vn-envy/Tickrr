@@ -16,16 +16,17 @@ export interface GrowthDraft {
 export interface GrowthState {
   discord: boolean;
   bluesky: boolean;
+  buffer: boolean;
   drafts: GrowthDraft[];
 }
 
 export async function fetchGrowth(): Promise<GrowthState> {
   try {
     const r = await fetch("/api/growth/drafts");
-    if (!r.ok) return { discord: false, bluesky: false, drafts: [] };
+    if (!r.ok) return { discord: false, bluesky: false, buffer: false, drafts: [] };
     return await r.json();
   } catch {
-    return { discord: false, bluesky: false, drafts: [] };
+    return { discord: false, bluesky: false, buffer: false, drafts: [] };
   }
 }
 

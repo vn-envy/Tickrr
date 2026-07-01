@@ -27,6 +27,8 @@ const MARKET_API = process.env.MARKET_API || "http://localhost:8000";
 const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL || "";
 const BLUESKY_HANDLE = process.env.BLUESKY_HANDLE || "";
 const BLUESKY_APP_PASSWORD = process.env.BLUESKY_APP_PASSWORD || "";
+const BUFFER_ACCESS_TOKEN = process.env.BUFFER_ACCESS_TOKEN || "";
+const BUFFER_CHANNEL_IDS = (process.env.BUFFER_CHANNEL_IDS || "").split(",").map((s) => s.trim()).filter(Boolean);
 const GROWTH_FILE = path.join(process.cwd(), "data", "growth.json");
 
 interface Draft {
@@ -94,7 +96,7 @@ async function generateDrafts(count = 3): Promise<Draft[]> {
       createdAt: new Date().toISOString(),
       source: `${s.market} · ${s.label}`,
       text: await draftCopy(s),
-      channels: ["discord", "bluesky"],
+      channels: ["discord", "bluesky", "buffer"],
       status: "pending",
     });
   }
@@ -129,10 +131,51 @@ async function publishBluesky(text: string): Promise<string> {
   } catch (e: any) { return `error ${e?.message || e}`; }
 }
 
+// Buffer (free tier): one integration reaches X / Instagram / LinkedIn / etc. via Buffer's
+// official-partner credentials. GraphQL at api.buffer.com; addToQueue lets Buffer publish at
+// the next slot (keeps us within the free 100/24h · 3,000/30d limits).
+async function bufferCreatePost(channelId: string, text: string): Promise<string> {
+  const query = `mutation($input: CreatePostInput!) {
+    createPost(input: $input) {
+      ... on PostActionSuccess { post { id } }
+      ... on MutationError { message }
+    }
+  }`;
+  const variables = { input: { text: text.slice(0, 900), channelId, schedulingType: "automatic", mode: "addToQueue" } };
+  try {
+    const r = await fetch("https://api.buffer.com", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${BUFFER_ACCESS_TOKEN}` },
+      body: JSON.stringify({ query, variables }),
+    });
+    if (!r.ok) return `http ${r.status}`;
+    const data: any = await r.json();
+    const out = data?.data?.createPost;
+    if (out?.post?.id) return "queued";
+    if (out?.message) return `err: ${out.message}`;
+    if (data?.errors?.length) return `err: ${data.errors[0]?.message || "graphql"}`;
+    return "unknown";
+  } catch (e: any) {
+    return `error ${e?.message || e}`;
+  }
+}
+
+async function publishBuffer(text: string): Promise<string> {
+  if (!BUFFER_ACCESS_TOKEN || !BUFFER_CHANNEL_IDS.length) {
+    return "dry-run (set BUFFER_ACCESS_TOKEN + BUFFER_CHANNEL_IDS)";
+  }
+  const parts: string[] = [];
+  for (const ch of BUFFER_CHANNEL_IDS) {
+    parts.push(`${ch.slice(0, 6)}=${await bufferCreatePost(ch, text)}`);
+  }
+  return parts.join(", ");
+}
+
 async function publishDraft(d: Draft): Promise<void> {
   const results: Record<string, string> = {};
   if (d.channels.includes("discord")) results.discord = await publishDiscord(d.text);
   if (d.channels.includes("bluesky")) results.bluesky = await publishBluesky(d.text);
+  if (d.channels.includes("buffer")) results.buffer = await publishBuffer(d.text);
   d.results = results;
   d.status = "published";
 }
@@ -378,6 +421,7 @@ Produce a prediction-market intelligence report on this market. Explain what the
     res.json({
       discord: Boolean(DISCORD_WEBHOOK_URL),
       bluesky: Boolean(BLUESKY_HANDLE && BLUESKY_APP_PASSWORD),
+      buffer: Boolean(BUFFER_ACCESS_TOKEN && BUFFER_CHANNEL_IDS.length),
       drafts: loadDrafts().slice(0, 50),
     });
   });
