@@ -24,7 +24,15 @@ BUFFER_CHANNEL_IDS="${BUFFER_CHANNEL_IDS:-}"
 gcloud config set project "$PROJECT_ID"
 echo "==> Enabling APIs"
 gcloud services enable run.googleapis.com cloudbuild.googleapis.com \
-  artifactregistry.googleapis.com cloudscheduler.googleapis.com
+  artifactregistry.googleapis.com cloudscheduler.googleapis.com firestore.googleapis.com
+
+echo "==> Ensuring Firestore database (durable growth-draft store)"
+gcloud firestore databases create --location="$REGION" --quiet 2>/dev/null \
+  || echo "    (Firestore database already exists — skipping)"
+PROJNUM=$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:${PROJNUM}-compute@developer.gserviceaccount.com" \
+  --role="roles/datastore.user" --quiet >/dev/null
 
 echo "==> Deploying tickrr-api (backend)"
 gcloud run deploy tickrr-api --source backend --region "$REGION" --allow-unauthenticated --quiet
@@ -34,7 +42,7 @@ echo "    API_URL=$API_URL"
 echo "==> Deploying tickrr-web (frontend + server)"
 gcloud run deploy tickrr-web --source web --region "$REGION" --allow-unauthenticated \
   --min-instances 1 --quiet \
-  --set-env-vars "MARKET_API=${API_URL},GEMINI_API_KEY=${GEMINI_API_KEY},STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY},GROWTH_CRON_SECRET=${GROWTH_CRON_SECRET},GROWTH_NOTIFY_WEBHOOK=${GROWTH_NOTIFY_WEBHOOK},DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL},BLUESKY_HANDLE=${BLUESKY_HANDLE},BLUESKY_APP_PASSWORD=${BLUESKY_APP_PASSWORD},BUFFER_ACCESS_TOKEN=${BUFFER_ACCESS_TOKEN},BUFFER_CHANNEL_IDS=${BUFFER_CHANNEL_IDS}"
+  --set-env-vars "GROWTH_STORE=firestore,MARKET_API=${API_URL},GEMINI_API_KEY=${GEMINI_API_KEY},STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY},GROWTH_CRON_SECRET=${GROWTH_CRON_SECRET},GROWTH_NOTIFY_WEBHOOK=${GROWTH_NOTIFY_WEBHOOK},DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL},BLUESKY_HANDLE=${BLUESKY_HANDLE},BLUESKY_APP_PASSWORD=${BLUESKY_APP_PASSWORD},BUFFER_ACCESS_TOKEN=${BUFFER_ACCESS_TOKEN},BUFFER_CHANNEL_IDS=${BUFFER_CHANNEL_IDS}"
 WEB_URL=$(gcloud run services describe tickrr-web --region "$REGION" --format='value(status.url)')
 
 # Point Stripe redirects at the real URL.

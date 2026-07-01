@@ -27,8 +27,19 @@ Dockerfile — you do **not** need Docker installed locally.
 ```bash
 gcloud config set project YOUR_PROJECT_ID
 gcloud services enable run.googleapis.com cloudbuild.googleapis.com \
-  artifactregistry.googleapis.com cloudscheduler.googleapis.com
+  artifactregistry.googleapis.com cloudscheduler.googleapis.com firestore.googleapis.com
+
+# Durable growth-draft store (Firestore Native mode) + let Cloud Run's service account use it:
+gcloud firestore databases create --location="$REGION"   # once per project
+PROJNUM=$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:${PROJNUM}-compute@developer.gserviceaccount.com" \
+  --role="roles/datastore.user"
 ```
+
+`deploy.sh` does all of the above for you. The web service runs with `GROWTH_STORE=firestore`, so
+the approval queue **survives restarts, redeploys, and scale-to-zero**. Without a reachable
+Firestore it degrades gracefully to an on-disk file store, so nothing hard-fails.
 
 ---
 
@@ -118,9 +129,9 @@ gcloud run deploy tickrr-web ... --set-secrets "GEMINI_API_KEY=gemini-key:latest
 - **Requirements met:** the deployed web app makes real **Gemini** calls (`/api/insights`,
   `/api/deliberate`) and runs on **Google Cloud Run** + **Cloud Scheduler** — satisfying the
   XPRIZE "≥1 Gemini call" and "≥1 Google Cloud product" gates.
-- **Growth queue persistence:** drafts are stored in a JSON file on the instance's ephemeral disk.
-  It survives while an instance is warm but is lost on redeploy/scale-to-zero. For durability,
-  move `loadDrafts`/`saveDrafts` to **Firestore** or **Cloud Storage** (a small, well-scoped change).
+- **Growth queue persistence:** the queue is stored in **Firestore** (collection `growth_drafts`),
+  so it persists across restarts, redeploys, and scale-to-zero. Locally (or if Firestore is
+  unreachable) it falls back to an on-disk JSON file. Toggle with `GROWTH_STORE=firestore|file`.
 - **Stripe:** set `STRIPE_SECRET_KEY` (test key) and `APP_URL=$WEB_URL` for real hosted checkout;
   otherwise "Go Pro" runs in demo mode.
 - **Cost:** well within the free tiers + $300 trial for hackathon-scale traffic. Scale to zero by

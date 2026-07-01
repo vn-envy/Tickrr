@@ -1,9 +1,9 @@
 import express from "express";
 import path from "path";
-import fs from "fs";
 import { GoogleGenAI, Type } from "@google/genai";
 import Stripe from "stripe";
 import dotenv from "dotenv";
+import { Draft, getGrowthStore } from "./growthStore";
 
 dotenv.config();
 
@@ -32,27 +32,6 @@ const BUFFER_CHANNEL_IDS = (process.env.BUFFER_CHANNEL_IDS || "").split(",").map
 const GROWTH_CRON_SECRET = process.env.GROWTH_CRON_SECRET || "";
 // Founder ping: a Discord webhook to notify you when new drafts land in the approval queue.
 const GROWTH_NOTIFY_WEBHOOK = process.env.GROWTH_NOTIFY_WEBHOOK || "";
-const GROWTH_FILE = path.join(process.cwd(), "data", "growth.json");
-
-interface Draft {
-  id: string;
-  createdAt: string;
-  source: string;
-  text: string;
-  channels: string[];
-  status: "pending" | "rejected" | "published";
-  results?: Record<string, string>;
-}
-
-function loadDrafts(): Draft[] {
-  try { return JSON.parse(fs.readFileSync(GROWTH_FILE, "utf8")); } catch { return []; }
-}
-function saveDrafts(drafts: Draft[]): void {
-  try {
-    fs.mkdirSync(path.dirname(GROWTH_FILE), { recursive: true });
-    fs.writeFileSync(GROWTH_FILE, JSON.stringify(drafts, null, 2));
-  } catch (e) { console.error("[TICKRR] growth save failed:", e); }
-}
 
 interface Signal { market: string; label: string; prob: number; rationale: string; }
 
@@ -103,7 +82,7 @@ async function generateDrafts(count = 3): Promise<Draft[]> {
       status: "pending",
     });
   }
-  saveDrafts([...fresh, ...loadDrafts()].slice(0, 200));
+  await (await getGrowthStore()).addDrafts(fresh);
   return fresh;
 }
 
@@ -463,12 +442,14 @@ Produce a prediction-market intelligence report on this market. Explain what the
   });
 
   // Growth engine: approval queue + generate + approve/reject (free: Discord + Bluesky).
-  app.get("/api/growth/drafts", (_req, res) => {
+  app.get("/api/growth/drafts", async (_req, res) => {
+    let drafts: Draft[] = [];
+    try { drafts = (await (await getGrowthStore()).getDrafts()).slice(0, 50); } catch { /* empty on store error */ }
     res.json({
       discord: Boolean(DISCORD_WEBHOOK_URL),
       bluesky: Boolean(BLUESKY_HANDLE && BLUESKY_APP_PASSWORD),
       buffer: Boolean(BUFFER_ACCESS_TOKEN && BUFFER_CHANNEL_IDS.length),
-      drafts: loadDrafts().slice(0, 50),
+      drafts,
     });
   });
 
@@ -492,18 +473,18 @@ Produce a prediction-market intelligence report on this market. Explain what the
 
   app.post("/api/growth/drafts/:id/:action", async (req, res) => {
     const { id, action } = req.params;
-    const drafts = loadDrafts();
-    const draft = drafts.find((d) => d.id === id);
+    const store = await getGrowthStore();
+    const draft = (await store.getDrafts()).find((d) => d.id === id);
     if (!draft) return res.status(404).json({ error: "Draft not found." });
     if (draft.status !== "pending") return res.json(draft);
     if (action === "reject") {
       draft.status = "rejected";
-      saveDrafts(drafts);
+      await store.updateDraft(draft);
       return res.json(draft);
     }
     if (action === "approve") {
       await publishDraft(draft); // publishes now; dry-runs if creds absent
-      saveDrafts(drafts);
+      await store.updateDraft(draft);
       return res.json(draft);
     }
     res.status(400).json({ error: "Unknown action." });
@@ -519,7 +500,7 @@ Produce a prediction-market intelligence report on this market. Explain what the
     try {
       const created = await generateDrafts(count);
       if (created.length) await notifyFounder(created.length);
-      const pending = loadDrafts().filter((d) => d.status === "pending").length;
+      const pending = (await (await getGrowthStore()).getDrafts()).filter((d) => d.status === "pending").length;
       res.json({ created: created.length, pending });
     } catch (error: any) {
       res.status(500).json({ error: error?.message || "cron failed" });

@@ -114,6 +114,7 @@ All optional — without them the app runs in free/demo/dry-run mode. See `web/.
 | `DISCORD_WEBHOOK_URL` / `BLUESKY_HANDLE` + `BLUESKY_APP_PASSWORD` | Free publishing channels. |
 | `BUFFER_ACCESS_TOKEN` / `BUFFER_CHANNEL_IDS` | Buffer → X / LinkedIn / Instagram. |
 | `GROWTH_CRON_SECRET` / `GROWTH_NOTIFY_WEBHOOK` / `GROWTH_AUTODRAFT` | Scheduled autonomous drafting. |
+| `GROWTH_STORE` | Approval-queue store: `firestore` (durable) or `file` (local). Auto-detects on Cloud Run. |
 
 ---
 
