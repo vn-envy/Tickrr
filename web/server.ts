@@ -155,16 +155,34 @@ async function bufferGraphql(query: string): Promise<any> {
   return data?.data;
 }
 
+// Non-throwing variant for diagnostics — returns status + raw data + errors.
+async function bufferGraphqlRaw(query: string): Promise<any> {
+  const r = await fetch("https://api.buffer.com", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${BUFFER_ACCESS_TOKEN}` },
+    body: JSON.stringify({ query }),
+  });
+  const data: any = await r.json().catch(() => ({}));
+  return { status: r.status, data: data?.data ?? null, errors: data?.errors ?? null };
+}
+
+// Buffer may return lists as plain arrays or Relay connections ({ edges: [{ node }] }).
+function asList(x: any): any[] {
+  if (Array.isArray(x)) return x;
+  if (x && Array.isArray(x.edges)) return x.edges.map((e: any) => e?.node).filter(Boolean);
+  return [];
+}
+
 // List connected channels + their IDs (for wiring BUFFER_CHANNEL_IDS): org first, then channels.
 async function bufferListChannels(): Promise<Array<{ id: string; name: string; service: string; organization: string }>> {
   const orgData = await bufferGraphql(`query { account { organizations { id name } } }`);
-  const orgs: any[] = orgData?.account?.organizations || [];
+  const orgs = asList(orgData?.account?.organizations);
   const out: Array<{ id: string; name: string; service: string; organization: string }> = [];
   for (const org of orgs) {
     const chData = await bufferGraphql(
       `query { channels(input: { organizationId: ${JSON.stringify(org.id)} }) { id name service } }`,
     );
-    for (const ch of chData?.channels || []) {
+    for (const ch of asList(chData?.channels)) {
       out.push({ id: ch.id, name: ch.name || ch.service, service: ch.service, organization: org.name || "" });
     }
   }
@@ -477,11 +495,16 @@ Produce a prediction-market intelligence report on this market. Explain what the
   });
 
   // Helper: list your Buffer channels + IDs so you can fill BUFFER_CHANNEL_IDS (X/LinkedIn/IG).
-  app.get("/api/growth/buffer/channels", async (_req, res) => {
+  app.get("/api/growth/buffer/channels", async (req, res) => {
     if (!BUFFER_ACCESS_TOKEN) {
       return res.status(400).json({ error: "Set BUFFER_ACCESS_TOKEN first — get a key at publish.buffer.com/settings/api." });
     }
     try {
+      if (req.query.debug) {
+        // Reveal the raw Buffer response shape so we can see orgs/channels or auth issues.
+        const account = await bufferGraphqlRaw(`query { account { id organizations { id name } } }`);
+        return res.json({ debug: account });
+      }
       res.json({ channels: await bufferListChannels() });
     } catch (error: any) {
       res.status(502).json({ error: error?.message || "Buffer channel lookup failed." });
