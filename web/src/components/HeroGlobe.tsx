@@ -83,21 +83,39 @@ export default function HeroGlobe() {
     const lines = new THREE.LineSegments(lineGeo, lineMat);
     group.add(lines);
 
-    // ~10% of the connections flicker between red / green / amber.
+    // ~20% of the connections flicker between red / green / amber, each with a bright pulsing
+    // dot at its node so the colour reads clearly (thin lines alone are near-invisible).
     const PALETTE = [
       [1.0, 0.22, 0.22], // red
       [0.15, 1.0, 0.45], // green
       [1.0, 0.66, 0.10], // amber
     ];
-    const active: { seg: number; phase: number }[] = [];
-    const activeTarget = Math.max(1, Math.round(segCount * 0.1));
+    const active: { seg: number; phase: number; freq: number }[] = [];
+    const activeTarget = Math.max(1, Math.round(segCount * 0.2));
     const used = new Set<number>();
     while (active.length < activeTarget) {
       const s = (Math.random() * segCount) | 0;
       if (used.has(s)) continue;
       used.add(s);
-      active.push({ seg: s, phase: Math.random() * Math.PI * 2 });
+      active.push({ seg: s, phase: Math.random() * Math.PI * 2, freq: 1.4 + Math.random() * 3.2 });
     }
+
+    // A glowing dot sits at each active connection's node and pulses with it.
+    const nodePos = new Float32Array(active.length * 3);
+    const nodeColors = new Float32Array(active.length * 3);
+    for (let a = 0; a < active.length; a++) {
+      const off = active[a].seg * 6;
+      nodePos[a * 3] = linePos[off];
+      nodePos[a * 3 + 1] = linePos[off + 1];
+      nodePos[a * 3 + 2] = linePos[off + 2];
+    }
+    const nodeGeo = new THREE.BufferGeometry();
+    nodeGeo.setAttribute("position", new THREE.BufferAttribute(nodePos, 3));
+    const nodeColorAttr = new THREE.BufferAttribute(nodeColors, 3);
+    nodeGeo.setAttribute("color", nodeColorAttr);
+    const nodeMat = new THREE.PointsMaterial({ size: 0.08, vertexColors: true, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false });
+    const nodes = new THREE.Points(nodeGeo, nodeMat);
+    group.add(nodes);
 
     // Faint wireframe shell + dark core for depth.
     const wire = new THREE.Mesh(
@@ -123,18 +141,25 @@ export default function HeroGlobe() {
       group.rotation.y += 0.0016;
       // Breathing — grows and shrinks slightly so the globe feels alive.
       group.scale.setScalar(1 + Math.sin(t * 0.9) * 0.035);
-      // Flicker the active connections through the red/green/amber palette.
-      for (const a of active) {
-        const col = PALETTE[Math.floor(t * 0.7 + a.phase) % PALETTE.length];
-        const bright = 0.45 + 0.55 * Math.abs(Math.sin(t * 3 + a.phase * 5));
-        const off = a.seg * 6;
+      // Flicker the active connections + their dots through the red/green/amber palette,
+      // each pulsing at its own random rate for a lively, twinkling network.
+      for (let a = 0; a < active.length; a++) {
+        const act = active[a];
+        const col = PALETTE[Math.floor(t * 0.5 + act.phase) % PALETTE.length];
+        const s = Math.sin(t * act.freq + act.phase);
+        const bright = 0.2 + 0.8 * Math.pow(Math.max(0, s), 1.5); // sharp, random-feeling twinkle
+        const off = act.seg * 6;
         for (let v = 0; v < 2; v++) {
           lineColors[off + v * 3] = col[0] * bright;
           lineColors[off + v * 3 + 1] = col[1] * bright;
           lineColors[off + v * 3 + 2] = col[2] * bright;
         }
+        nodeColors[a * 3] = col[0] * bright;
+        nodeColors[a * 3 + 1] = col[1] * bright;
+        nodeColors[a * 3 + 2] = col[2] * bright;
       }
       lineColorAttr.needsUpdate = true;
+      nodeColorAttr.needsUpdate = true;
       spark.position.set(Math.cos(t) * 1.9, Math.sin(t * 0.7) * 0.6, Math.sin(t) * 1.9);
       spark2.position.set(Math.cos(t * 1.3 + 2) * 1.7, Math.sin(t * 0.9 + 1) * 0.9, Math.sin(t * 1.3 + 2) * 1.7);
       renderer.render(scene, camera);
@@ -158,6 +183,8 @@ export default function HeroGlobe() {
       mat.dispose();
       lineGeo.dispose();
       lineMat.dispose();
+      nodeGeo.dispose();
+      nodeMat.dispose();
       renderer.dispose();
       if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
     };
