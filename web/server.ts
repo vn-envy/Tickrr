@@ -442,6 +442,29 @@ Produce a prediction-market intelligence report on this market. Explain what the
   });
 
   // Growth engine: approval queue + generate + approve/reject (free: Discord + Bluesky).
+  // Status endpoint — which store is active (firestore/file) + channel/AI wiring. Handy for
+  // confirming durable Firestore persistence on Cloud Run and for the ops demo.
+  app.get("/api/growth/health", async (_req, res) => {
+    try {
+      const store = await getGrowthStore();
+      const drafts = await store.getDrafts();
+      res.json({
+        store: store.kind,
+        total: drafts.length,
+        pending: drafts.filter((d) => d.status === "pending").length,
+        published: drafts.filter((d) => d.status === "published").length,
+        gemini: Boolean(process.env.GEMINI_API_KEY),
+        channels: {
+          discord: Boolean(DISCORD_WEBHOOK_URL),
+          bluesky: Boolean(BLUESKY_HANDLE && BLUESKY_APP_PASSWORD),
+          buffer: Boolean(BUFFER_ACCESS_TOKEN && BUFFER_CHANNEL_IDS.length),
+        },
+      });
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || "health failed" });
+    }
+  });
+
   app.get("/api/growth/drafts", async (_req, res) => {
     let drafts: Draft[] = [];
     try { drafts = (await (await getGrowthStore()).getDrafts()).slice(0, 50); } catch { /* empty on store error */ }
