@@ -207,6 +207,20 @@ export async function fetchMarketsMulti(queries: string[] = MARKET_QUERIES, perQ
   return merged;
 }
 
+export interface CalendarEvent { date: string; title: string; category: string; }
+
+/** Upcoming market-moving catalysts (optionally filtered to one category). */
+export async function fetchCalendar(category?: string): Promise<CalendarEvent[]> {
+  try {
+    const qs = category && category !== "all" ? `?category=${encodeURIComponent(category)}` : "";
+    const r = await fetch(`${API_BASE}/api/calendar${qs}`);
+    if (!r.ok) return [];
+    return (await r.json()).events || [];
+  } catch {
+    return [];
+  }
+}
+
 /** Implied-probability time series for a market's Yes token (Polymarket CLOB). */
 export async function fetchHistory(token: string, interval = "1m"): Promise<{ t: number; p: number }[]> {
   try {

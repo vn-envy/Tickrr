@@ -7,6 +7,7 @@ and returns the deterministic fair-value read for each. Dislocation detection, t
 from __future__ import annotations
 
 import asyncio
+import time
 
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,7 +20,7 @@ from app.data.kalshi import (
     KalshiClient, normalize_team, GOAL_LEADER_SERIES, ASSISTS_SERIES, GOAL_SERIES, SOA_SERIES,
 )
 from app.data.players import country_for
-from app.data import wiki, gdelt
+from app.data import wiki, gdelt, calendar
 from app.engine import fair_value, dislocation
 from app.models import MarketIntel, MarketSnapshot, Outcome, Divergence, TeamEnrichment
 
@@ -138,18 +139,35 @@ async def healthz():
     return {"status": "ok", "version": __version__, "env": settings.tickrr_env}
 
 
+# Short-lived cache of built intel per (query, limit) — the multi-category board fires many
+# queries, and Polymarket + enrichment is the slow part. Keeps repeat loads instant + cuts load.
+_INTEL_CACHE: dict[str, tuple[float, list[MarketIntel]]] = {}
+_INTEL_TTL = 90.0  # seconds
+
+
+async def _build_intel(query: str, limit: int) -> list[MarketIntel]:
+    key = f"{query.lower()}|{limit}"
+    now = time.monotonic()
+    hit = _INTEL_CACHE.get(key)
+    if hit and now - hit[0] < _INTEL_TTL:
+        return hit[1]
+    snapshots = await client.search_markets(query=query, limit=limit)
+    is_wc = "world cup" in query.lower()
+    kalshi_team = await kalshi_client.get_winner_probs() if is_wc else {}
+    kalshi_player = await kalshi_client.get_winner_probs(series=GOAL_LEADER_SERIES) if is_wc else {}
+    player_index = _build_player_index(snapshots) if is_wc else {}
+    intel = [_intel(s, kalshi_team, kalshi_player, player_index) for s in snapshots]
+    _INTEL_CACHE[key] = (now, intel)
+    return intel
+
+
 @app.get("/api/markets", response_model=list[MarketIntel])
 async def list_markets(
     query: str = Query("World Cup", description="Event-title filter"),
     limit: int = Query(30, ge=1, le=100),
 ):
     """Live market intelligence: matching markets + each one's fair-value read."""
-    snapshots = await client.search_markets(query=query, limit=limit)
-    is_wc = "world cup" in query.lower()
-    kalshi_team = await kalshi_client.get_winner_probs() if is_wc else {}
-    kalshi_player = await kalshi_client.get_winner_probs(series=GOAL_LEADER_SERIES) if is_wc else {}
-    player_index = _build_player_index(snapshots) if is_wc else {}
-    return [_intel(s, kalshi_team, kalshi_player, player_index) for s in snapshots]
+    return await _build_intel(query, limit)
 
 
 @app.get("/api/dislocations", response_model=list[MarketIntel])
@@ -158,15 +176,19 @@ async def list_dislocations(
     limit: int = Query(60, ge=1, le=200),
 ):
     """The home board: only markets currently flagged with a dislocation, most severe first."""
-    snapshots = await client.search_markets(query=query, limit=limit)
-    is_wc = "world cup" in query.lower()
-    kalshi_team = await kalshi_client.get_winner_probs() if is_wc else {}
-    kalshi_player = await kalshi_client.get_winner_probs(series=GOAL_LEADER_SERIES) if is_wc else {}
-    player_index = _build_player_index(snapshots) if is_wc else {}
-    intel = [_intel(s, kalshi_team, kalshi_player, player_index) for s in snapshots]
+    intel = await _build_intel(query, limit)
     flagged = [m for m in intel if m.dislocation is not None]
     flagged.sort(key=lambda m: m.dislocation.severity if m.dislocation else 0.0, reverse=True)
     return flagged
+
+
+@app.get("/api/calendar")
+async def market_calendar(
+    category: str | None = Query(None, description="Filter to one category, e.g. Macro / Politics"),
+    limit: int = Query(12, ge=1, le=40),
+):
+    """Upcoming market-moving catalysts (the 'what to watch' behind the markets)."""
+    return {"events": calendar.upcoming(category, limit)}
 
 
 @app.get("/api/history")

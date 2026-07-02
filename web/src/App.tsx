@@ -21,6 +21,7 @@ import GrowthConsole from "./components/GrowthConsole";
 import ThemeToggle from "./components/ThemeToggle";
 import UpgradeModal from "./components/UpgradeModal";
 import MySpace from "./components/MySpace";
+import CatalystBar from "./components/CatalystBar";
 import { isPremium, setPremium, goPro } from "./lib/premium";
 import { signInWithGoogle, signOutUser, subscribeAuth, AuthUser } from "./lib/auth";
 import { authEnabled } from "./lib/firebase";
@@ -237,6 +238,9 @@ export default function App() {
         activeSportFilter={sportFilter}
         onCustomAdd={handleCustomAdd}
       />
+
+      {/* Upcoming catalysts — the "what to watch" behind the markets, scoped to the category */}
+      <CatalystBar scope={leagueScope} />
 
       {/* Dislocation Radar (home board, scoped to the active league) */}
       <DislocationBoard entities={scoped} onSelect={(e) => setActiveEntity(e)} />

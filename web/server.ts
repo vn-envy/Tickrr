@@ -597,7 +597,7 @@ Produce a prediction-market intelligence report on this market. Explain what the
 
   // Proxy read-only market data from the FastAPI backend so the browser stays same-origin
   // (no CORS, no compile-time backend URL). MARKET_API is a runtime env var.
-  for (const p of ["/api/markets", "/api/history", "/api/player"]) {
+  for (const p of ["/api/markets", "/api/history", "/api/player", "/api/calendar"]) {
     app.get(p, async (req, res) => {
       try {
         const r = await fetch(`${MARKET_API}${req.originalUrl}`);
