@@ -14,6 +14,11 @@ interface TickerBannerProps {
 export default function TickerBanner({ entities, onSelectEntity }: TickerBannerProps) {
   const [liveEntities, setLiveEntities] = useState<SportsEntity[]>(entities);
 
+  // Resync when the (scoped) entities prop changes — otherwise the ticker freezes on seed data.
+  useEffect(() => {
+    setLiveEntities(entities);
+  }, [entities]);
+
   // Simulate ultra-fast real-time sports feeds fluctuating slightly
   useEffect(() => {
     const interval = setInterval(() => {

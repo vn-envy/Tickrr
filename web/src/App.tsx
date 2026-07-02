@@ -20,8 +20,9 @@ import Home from "./components/Home";
 import GrowthConsole from "./components/GrowthConsole";
 import ThemeToggle from "./components/ThemeToggle";
 import UpgradeModal from "./components/UpgradeModal";
+import MySpace from "./components/MySpace";
 import { isPremium, setPremium, goPro } from "./lib/premium";
-import { Globe, RefreshCw, Layers, Lock, Rocket } from "lucide-react";
+import { Globe, RefreshCw, Layers, Lock, Rocket, Star } from "lucide-react";
 
 export default function App() {
   const [entities, setEntities] = useState<SportsEntity[]>(INITIAL_SPORTS_ENTITIES);
@@ -30,6 +31,8 @@ export default function App() {
   const [delibOpen, setDelibOpen] = useState(false);
   const [growthOpen, setGrowthOpen] = useState(false);
   const [paywallOpen, setPaywallOpen] = useState(false);
+  const [mySpaceOpen, setMySpaceOpen] = useState(false);
+  const [leagueScope, setLeagueScope] = useState<string>("all"); // global event scope
   const [entered, setEntered] = useState(false);
   const [pro, setPro] = useState(isPremium());
 
@@ -124,6 +127,9 @@ export default function App() {
     return <Home onEnter={enterTerminal} onGoPro={handleGoPro} premium={pro} />;
   }
 
+  // Global league scope drives the ticker, the Dislocation Radar, and the screener chips.
+  const scoped = leagueScope === "all" ? entities : entities.filter((e) => (e.league || "") === leagueScope);
+
   return (
     <div
       className="min-h-screen bg-[#050608] text-[#D1D4DC] flex flex-col font-sans scanline-overlay relative overflow-x-hidden"
@@ -142,6 +148,13 @@ export default function App() {
         {/* Right stats indicators */}
         <div className="flex items-center gap-5 font-mono text-[10px] text-[#D1D4DC]/40">
           <ThemeToggle />
+          <button
+            onClick={() => setMySpaceOpen(true)}
+            className="cursor-pointer flex items-center gap-1.5 bg-[#FF9900]/10 hover:bg-[#FF9900]/20 border border-[#FF9900]/40 text-[#FF9900] text-[10px] font-bold px-2.5 py-1 rounded transition"
+          >
+            <Star className="w-3 h-3" />
+            MY SPACE
+          </button>
           <button
             onClick={() => setGrowthOpen(true)}
             className="cursor-pointer flex items-center gap-1.5 bg-[#FF9900]/10 hover:bg-[#FF9900]/20 border border-[#FF9900]/40 text-[#FF9900] text-[10px] font-bold px-2.5 py-1 rounded transition"
@@ -178,10 +191,10 @@ export default function App() {
         </div>
       </header>
 
-      {/* Real-time Scrolling Ticker Banner */}
-      <TickerBanner 
-        entities={entities} 
-        onSelectEntity={(entity) => setActiveEntity(entity)} 
+      {/* Real-time Scrolling Ticker Banner (scoped to the active league) */}
+      <TickerBanner
+        entities={scoped}
+        onSelectEntity={(entity) => setActiveEntity(entity)}
       />
 
       {/* Terminal Command bar (Search, Filter, Clock) */}
@@ -194,18 +207,20 @@ export default function App() {
         onCustomAdd={handleCustomAdd}
       />
 
-      {/* Dislocation Radar (home board) */}
-      <DislocationBoard entities={entities} onSelect={(e) => setActiveEntity(e)} />
+      {/* Dislocation Radar (home board, scoped to the active league) */}
+      <DislocationBoard entities={scoped} onSelect={(e) => setActiveEntity(e)} />
 
       {/* Main Terminal Workspace Layout */}
       <main className="flex-1 p-3 md:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 z-20 items-start overflow-y-auto">
         {/* Left Sidebar Pane: Market Directory (Screener Grid) */}
         <div className="lg:col-span-4 flex flex-col h-[70vh] lg:h-[78vh]">
-          <MarketWatch 
+          <MarketWatch
             entities={entities}
             activeEntity={activeEntity}
             onSelectEntity={(entity) => setActiveEntity(entity)}
             sportFilter={sportFilter}
+            leagueScope={leagueScope}
+            onLeagueScope={setLeagueScope}
           />
         </div>
 
@@ -251,6 +266,7 @@ export default function App() {
       <DeliberationRoom entity={activeEntity} open={delibOpen} onClose={() => setDelibOpen(false)} premium={pro} onUnlocked={() => setPro(true)} />
       <GrowthConsole open={growthOpen} onClose={() => setGrowthOpen(false)} />
       <UpgradeModal open={paywallOpen} onClose={() => setPaywallOpen(false)} onSelect={handleUpgrade} />
+      <MySpace open={mySpaceOpen} onClose={() => setMySpaceOpen(false)} entities={entities} onSelect={(e) => setActiveEntity(e)} />
     </div>
   );
 }

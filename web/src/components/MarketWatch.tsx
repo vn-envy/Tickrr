@@ -13,17 +13,21 @@ interface MarketWatchProps {
   activeEntity: SportsEntity;
   onSelectEntity: (entity: SportsEntity) => void;
   sportFilter: string | null;
+  leagueScope?: string;                 // shared global scope ("all" | <league>)
+  onLeagueScope?: (v: string) => void;
 }
 
 export default function MarketWatch({
   entities,
   activeEntity,
   onSelectEntity,
-  sportFilter
+  sportFilter,
+  leagueScope = "all",
+  onLeagueScope,
 }: MarketWatchProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<"all" | "athlete" | "team">("all");
-  const [leagueFilter, setLeagueFilter] = useState<string>("all"); // "all" | "★" | <league>
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [favorites, setFavorites] = useState<Set<string>>(() => getFavorites());
 
   const toggleFav = (id: string) => setFavorites(new Set(toggleFavorite(id)));
@@ -33,12 +37,12 @@ export default function MarketWatch({
 
   const chip = (v: string) =>
     `cursor-pointer px-2 py-0.5 rounded border transition ${
-      leagueFilter === v
+      leagueScope === v
         ? "bg-[#FF9900] text-black border-[#FF9900] font-black"
         : "border-[#2D333B] text-[#D1D4DC]/60 hover:text-white hover:border-[#FF9900]/40"
     }`;
 
-  // Filter entities: search + sport + category + league/watchlist chip.
+  // Filter entities: search + sport + category + league scope + watchlist.
   const filtered = entities.filter((item) => {
     const q = searchQuery.toLowerCase();
     const matchesSearch =
@@ -49,12 +53,10 @@ export default function MarketWatch({
 
     const matchesSport = sportFilter ? item.sport === sportFilter : true;
     const matchesCategory = categoryFilter === "all" ? true : item.category === categoryFilter;
-    const matchesLeague =
-      leagueFilter === "all" ? true
-      : leagueFilter === "★" ? favorites.has(item.id)
-      : (item.league || "") === leagueFilter;
+    const matchesLeague = leagueScope === "all" ? true : (item.league || "") === leagueScope;
+    const matchesFav = favoritesOnly ? favorites.has(item.id) : true;
 
-    return matchesSearch && matchesSport && matchesCategory && matchesLeague;
+    return matchesSearch && matchesSport && matchesCategory && matchesLeague && matchesFav;
   });
 
   return (
@@ -126,15 +128,22 @@ export default function MarketWatch({
         </div>
       </div>
 
-      {/* League segmentation + personal watchlist */}
+      {/* League segmentation (global scope) + personal watchlist */}
       {(leagues.length > 1 || favorites.size > 0) && (
         <div className="px-2 py-1.5 border-b border-[#2D333B] bg-[#0B0E11]/30 flex items-center gap-1.5 flex-wrap font-mono text-[9px] tracking-wider select-none">
-          <button onClick={() => setLeagueFilter("all")} className={chip("all")}>ALL</button>
+          <button onClick={() => onLeagueScope?.("all")} className={chip("all")}>ALL</button>
           {leagues.map((lg) => (
-            <button key={lg} onClick={() => setLeagueFilter(lg)} className={chip(lg)}>{lg.toUpperCase()}</button>
+            <button key={lg} onClick={() => onLeagueScope?.(lg)} className={chip(lg)}>{lg.toUpperCase()}</button>
           ))}
-          <button onClick={() => setLeagueFilter("★")} className={`${chip("★")} ml-auto flex items-center gap-1`}>
-            <Star className="w-2.5 h-2.5" /> WATCHLIST{favorites.size ? ` · ${favorites.size}` : ""}
+          <button
+            onClick={() => setFavoritesOnly((v) => !v)}
+            className={`cursor-pointer px-2 py-0.5 rounded border transition ml-auto flex items-center gap-1 ${
+              favoritesOnly
+                ? "bg-[#FF9900] text-black border-[#FF9900] font-black"
+                : "border-[#2D333B] text-[#D1D4DC]/60 hover:text-white hover:border-[#FF9900]/40"
+            }`}
+          >
+            <Star className={`w-2.5 h-2.5 ${favoritesOnly ? "fill-black" : ""}`} /> WATCHLIST{favorites.size ? ` · ${favorites.size}` : ""}
           </button>
         </div>
       )}
