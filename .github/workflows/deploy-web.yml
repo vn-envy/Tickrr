@@ -1,0 +1,35 @@
+name: Deploy web (Cloud Run)
+
+# Auto-deploys tickrr-web on any push to main that touches web/.
+# Keyless auth via Workload Identity Federation (see docs/CICD.md). A plain `run deploy --source`
+# rebuilds the image and PRESERVES the service's existing env vars/secrets (no --set-env-vars).
+
+on:
+  push:
+    branches: [main]
+    paths: ["web/**"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Deploy tickrr-web
+        run: |
+          gcloud run deploy tickrr-web \
+            --source web \
+            --project "${{ vars.GCP_PROJECT_ID }}" \
+            --region "${{ vars.GCP_REGION }}" \
+            --quiet

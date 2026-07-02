@@ -108,7 +108,7 @@ queue) · **Cloud Scheduler** (autonomous cadence) · **Cloud Storage** (media h
 
 ## Run it
 
-**Live:** **[tickrr-web-qqocdd33ra-uc.a.run.app](https://tickrr-web-qqocdd33ra-uc.a.run.app)** · one-command deploy in **[docs/DEPLOY.md](docs/DEPLOY.md)** (`bash deploy.sh`).
+**Live:** **[tickrr-web-qqocdd33ra-uc.a.run.app](https://tickrr-web-qqocdd33ra-uc.a.run.app)** · one-command deploy in **[docs/DEPLOY.md](docs/DEPLOY.md)** (`bash deploy.sh`) · **CI/CD** auto-deploys each service on push to `main` ([docs/CICD.md](docs/CICD.md)).
 
 **Local:**
 ```bash
