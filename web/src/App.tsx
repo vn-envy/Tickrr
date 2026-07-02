@@ -158,7 +158,7 @@ export default function App() {
             <span className="text-[8px] bg-[#00FF66] text-black px-1 rounded font-black">PRO</span>
           </button>
           <div className="hidden md:flex flex-col text-right">
-            <span className="text-[#D1D4DC]/30 font-bold uppercase">WORLD CUP · LIVE</span>
+            <span className="text-[#D1D4DC]/30 font-bold uppercase">WC + NFL · LIVE</span>
             <span className="text-[#00FF66] font-black font-mono">14,924.81 ▲ +1.14%</span>
           </div>
           <div className="hidden lg:flex flex-col text-right border-l border-[#2D333B] pl-4">

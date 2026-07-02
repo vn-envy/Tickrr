@@ -46,7 +46,7 @@ export default function MarketWatch({
         <div className="flex items-center gap-2">
           <Star className="w-3.5 h-3.5 text-[#FF9900] fill-[#FF9900]" />
           <h2 className="font-sans text-xs font-bold tracking-widest text-[#D1D4DC]">
-            WORLD CUP · WIN MARKETS
+            WIN MARKETS · LIVE
           </h2>
         </div>
         <span className="font-mono text-[9px] text-[#D1D4DC]/60 font-bold bg-[#1C2128] border border-[#2D333B] px-1.5 py-0.5 rounded">

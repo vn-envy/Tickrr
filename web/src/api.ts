@@ -80,12 +80,15 @@ function tickerFrom(name: string, isPlayer: boolean): string {
 }
 
 function cleanEvent(eventTitle?: string | null): string {
-  const lower = (eventTitle || "").toLowerCase();
+  const raw = (eventTitle || "").trim();
+  const lower = raw.toLowerCase();
   if (lower.includes("golden boot")) return "Golden Boot";
   if (lower.includes("advance") || lower.includes("knockout")) return "To Advance";
   if (lower.includes("group")) return "Group Stage";
-  if (lower.includes("winner") || lower.includes("win the")) return "To Win Cup";
-  return "World Cup";
+  if (lower.includes("nfl") || lower.includes("super bowl")) return "NFL Champion";
+  if (lower.includes("world cup")) return "To Win Cup";
+  if (lower.includes("winner") || lower.includes("win the") || lower.includes("champion")) return "To Win";
+  return raw || "Market";
 }
 
 /** Gentle random walk that lands on `end`, so the telemetry chart reads as a real series. */
