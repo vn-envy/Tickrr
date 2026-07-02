@@ -89,6 +89,11 @@ function cleanEvent(eventTitle?: string | null): string {
   if (lower.includes("world series") || lower.includes("mlb")) return "World Series";
   if (lower.includes("nba")) return "NBA";
   if (lower.includes("f1") || lower.includes("formula")) return "F1 Title";
+  // Non-sports categories — the wider intelligence layer.
+  if (lower.includes("fed") || lower.includes("fomc") || lower.includes("interest rate") || lower.includes("cpi") || lower.includes("inflation") || lower.includes("recession") || lower.includes("gdp")) return "Macro";
+  if (lower.includes("bitcoin") || lower.includes("ethereum") || lower.includes("crypto") || lower.includes(" btc") || lower.includes(" eth")) return "Crypto";
+  if (lower.includes("election") || lower.includes("senate") || lower.includes("house ") || lower.includes("president") || lower.includes("midterm") || lower.includes("governor") || lower.includes("congress")) return "Election";
+  if (lower.includes("nobel")) return "Nobel";
   if (lower.includes("world cup")) return "To Win Cup";
   if (lower.includes("winner") || lower.includes("win the") || lower.includes("champion")) return "To Win";
   return raw || "Market";
@@ -176,8 +181,16 @@ export async function fetchMarkets(query = "World Cup", limit = 40): Promise<Spo
 // The event universes the terminal covers — Tickrr follows the money across spectacles.
 // Configurable at build time via VITE_MARKET_QUERIES (comma-separated).
 export const MARKET_QUERIES: string[] = (
-  (import.meta as any).env?.VITE_MARKET_QUERIES || "World Cup,NFL,NBA,MLB,F1"
+  (import.meta as any).env?.VITE_MARKET_QUERIES || "World Cup,NFL,NBA,MLB,F1,election,Fed rate,Bitcoin,Ethereum"
 ).split(",").map((s: string) => s.trim()).filter(Boolean);
+
+// Group individual queries into Bloomberg-style categories for the league/category chips.
+const CATEGORY: Record<string, string> = {
+  election: "Politics", trump: "Politics",
+  "fed rate": "Macro",
+  bitcoin: "Crypto", ethereum: "Crypto",
+  nobel: "Culture",
+};
 
 /** Fetch several event universes in parallel and merge them (deduped) into one board. */
 export async function fetchMarketsMulti(queries: string[] = MARKET_QUERIES, perQuery = 60): Promise<SportsEntity[]> {
@@ -185,7 +198,7 @@ export async function fetchMarketsMulti(queries: string[] = MARKET_QUERIES, perQ
   const seen = new Set<string>();
   const merged: SportsEntity[] = [];
   lists.forEach((list, i) => {
-    const league = queries[i];
+    const league = CATEGORY[queries[i].toLowerCase()] || queries[i];
     for (const e of list) {
       const key = e.id || e.ticker || e.name;
       if (key && !seen.has(key)) { seen.add(key); merged.push({ ...e, league }); }

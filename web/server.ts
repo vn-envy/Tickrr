@@ -62,7 +62,7 @@ async function draftCopy(s: Signal): Promise<string> {
 }
 
 // Which events the autonomous drafts pull signals from — "follow the money" across spectacles.
-const GROWTH_QUERIES = (process.env.GROWTH_QUERIES || "World Cup,NFL,NBA,MLB,F1").split(",").map((s) => s.trim()).filter(Boolean);
+const GROWTH_QUERIES = (process.env.GROWTH_QUERIES || "World Cup,NFL,NBA,MLB,F1,election,Fed rate,Bitcoin").split(",").map((s) => s.trim()).filter(Boolean);
 
 async function generateDrafts(count = 3): Promise<Draft[]> {
   const pools: Signal[][] = [];
