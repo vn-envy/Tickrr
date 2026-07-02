@@ -55,22 +55,32 @@ async function draftCopy(s: Signal): Promise<string> {
   }
 }
 
+// Which events the autonomous drafts pull signals from — "follow the money" across spectacles.
+const GROWTH_QUERIES = (process.env.GROWTH_QUERIES || "World Cup,NFL").split(",").map((s) => s.trim()).filter(Boolean);
+
 async function generateDrafts(count = 3): Promise<Draft[]> {
+  const pools: Signal[][] = [];
+  for (const q of GROWTH_QUERIES) {
+    try {
+      const r = await fetch(`${MARKET_API}/api/dislocations?query=${encodeURIComponent(q)}&limit=40`);
+      if (r.ok) {
+        const data: any[] = await r.json();
+        pools.push(data.map((m) => ({
+          market: m.market?.group_title || m.market?.question || "Market",
+          label: m.dislocation?.label || "Signal",
+          prob: (m.fair_value?.implied_prob || 0) * 100,
+          rationale: m.dislocation?.rationale || "",
+        })));
+      }
+    } catch { /* skip this event */ }
+  }
+  // Interleave across events so drafts span the World Cup + NFL rather than one dominating.
   let signals: Signal[] = [];
-  try {
-    const r = await fetch(`${MARKET_API}/api/dislocations?query=World%20Cup&limit=40`);
-    if (r.ok) {
-      const data: any[] = await r.json();
-      signals = data.slice(0, count).map((m) => ({
-        market: m.market?.group_title || m.market?.question || "Market",
-        label: m.dislocation?.label || "Signal",
-        prob: (m.fair_value?.implied_prob || 0) * 100,
-        rationale: m.dislocation?.rationale || "",
-      }));
-    }
-  } catch { /* market backend offline — fall through to a generic draft */ }
+  for (let i = 0; signals.length < count && pools.some((p) => p[i]); i++) {
+    for (const p of pools) { if (p[i] && signals.length < count) signals.push(p[i]); }
+  }
   if (!signals.length) {
-    signals = [{ market: "World Cup", label: "Daily read", prob: 0, rationale: "Live dislocations, cross-venue gaps, and player dossiers." }];
+    signals = [{ market: "Prediction markets", label: "Daily read", prob: 0, rationale: "Live dislocations, cross-venue gaps, and player dossiers across the World Cup + NFL." }];
   }
   const fresh: Draft[] = [];
   for (const s of signals) {

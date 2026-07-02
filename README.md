@@ -7,6 +7,7 @@
 [![Live Demo](https://img.shields.io/badge/▶_Live_Demo-Tickrr_Terminal-00FF66?style=for-the-badge)](https://tickrr-web-qqocdd33ra-uc.a.run.app)
 &nbsp;
 [![Built with Gemini](https://img.shields.io/badge/Built_with-Gemini-4285F4?style=for-the-badge&logo=google)](https://ai.google.dev)
+[![Deploy](https://github.com/vn-envy/Tickrr/actions/workflows/deploy-web.yml/badge.svg)](https://github.com/vn-envy/Tickrr/actions)
 [![Google Cloud Run](https://img.shields.io/badge/Runs_on-Cloud_Run-4285F4?style=flat-square&logo=googlecloud&logoColor=white)](https://cloud.google.com/run)
 [![Firestore](https://img.shields.io/badge/State-Firestore-FFA000?style=flat-square&logo=firebase&logoColor=white)](https://cloud.google.com/firestore)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=flat-square)](LICENSE)
@@ -24,10 +25,17 @@ dislocation detection, cross-venue divergence, player dossiers, and cited "why d
 explanations — delivered as a dense, fast terminal, plus an API and an MCP layer so AI agents can
 consume the same signals.
 
-We launch on the **FIFA World Cup 2026** — the highest-volume, most-volatile sports-trading event
+We launched on the **FIFA World Cup 2026** — the highest-volume, most-volatile sports-trading event
 on the calendar and the perfect proving ground. From there Tickrr follows the money: it **expands
 to global sporting events based on where trading interest and capital flow next**, re-pointing the
 same engine at the leagues and tournaments with the most volume and volatility.
+
+**▶ Now live: the NFL.** The terminal already covers **both** — live World Cup markets *and* **NFL
+2026-season futures** — because the NFL is the next spectacle the money is flowing to (~40% of
+Polymarket sports volume; Super Bowl LX was the single largest sporting event in Polymarket
+history at $701M, and Kalshi traded $2.8B in that week). Adding an event is one config value
+(`VITE_MARKET_QUERIES` for the terminal, `GROWTH_QUERIES` for the autonomous growth engine) — no
+code change — so the engine chases each spectacle as it heats up.
 
 > **Intel only.** Tickrr never tells you to bet, buy, sell, or size a position, and it never
 > executes trades. It tells you whether a price is decision-quality — and why it moved.

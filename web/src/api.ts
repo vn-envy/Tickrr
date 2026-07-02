@@ -167,6 +167,26 @@ export async function fetchMarkets(query = "World Cup", limit = 40): Promise<Spo
   return data.map(intelToEntity);
 }
 
+// The event universes the terminal covers — Tickrr follows the money across spectacles.
+// Configurable at build time via VITE_MARKET_QUERIES (comma-separated).
+export const MARKET_QUERIES: string[] = (
+  (import.meta as any).env?.VITE_MARKET_QUERIES || "World Cup,NFL"
+).split(",").map((s: string) => s.trim()).filter(Boolean);
+
+/** Fetch several event universes in parallel and merge them (deduped) into one board. */
+export async function fetchMarketsMulti(queries: string[] = MARKET_QUERIES, perQuery = 60): Promise<SportsEntity[]> {
+  const lists = await Promise.all(queries.map((q) => fetchMarkets(q, perQuery).catch(() => [] as SportsEntity[])));
+  const seen = new Set<string>();
+  const merged: SportsEntity[] = [];
+  for (const list of lists) {
+    for (const e of list) {
+      const key = e.id || e.ticker || e.name;
+      if (key && !seen.has(key)) { seen.add(key); merged.push(e); }
+    }
+  }
+  return merged;
+}
+
 /** Implied-probability time series for a market's Yes token (Polymarket CLOB). */
 export async function fetchHistory(token: string, interval = "1m"): Promise<{ t: number; p: number }[]> {
   try {

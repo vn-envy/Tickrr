@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from "react";
 import { INITIAL_SPORTS_ENTITIES } from "./data";
-import { fetchMarkets } from "./api";
+import { fetchMarketsMulti, MARKET_QUERIES } from "./api";
 import { SportsEntity } from "./types";
 import TickrrLogo from "./components/TickrrLogo";
 import CommandBar from "./components/CommandBar";
@@ -48,7 +48,7 @@ export default function App() {
 
   // Load live World Cup market intelligence from the Tickrr backend (falls back to seed data).
   useEffect(() => {
-    fetchMarkets("World Cup", 100)
+    fetchMarketsMulti(MARKET_QUERIES, 60)
       .then((markets) => {
         if (markets.length) {
           setEntities(markets);
