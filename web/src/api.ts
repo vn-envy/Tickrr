@@ -86,6 +86,9 @@ function cleanEvent(eventTitle?: string | null): string {
   if (lower.includes("advance") || lower.includes("knockout")) return "To Advance";
   if (lower.includes("group")) return "Group Stage";
   if (lower.includes("nfl") || lower.includes("super bowl")) return "NFL Champion";
+  if (lower.includes("world series") || lower.includes("mlb")) return "World Series";
+  if (lower.includes("nba")) return "NBA";
+  if (lower.includes("f1") || lower.includes("formula")) return "F1 Title";
   if (lower.includes("world cup")) return "To Win Cup";
   if (lower.includes("winner") || lower.includes("win the") || lower.includes("champion")) return "To Win";
   return raw || "Market";
@@ -173,7 +176,7 @@ export async function fetchMarkets(query = "World Cup", limit = 40): Promise<Spo
 // The event universes the terminal covers — Tickrr follows the money across spectacles.
 // Configurable at build time via VITE_MARKET_QUERIES (comma-separated).
 export const MARKET_QUERIES: string[] = (
-  (import.meta as any).env?.VITE_MARKET_QUERIES || "World Cup,NFL"
+  (import.meta as any).env?.VITE_MARKET_QUERIES || "World Cup,NFL,NBA,MLB,F1"
 ).split(",").map((s: string) => s.trim()).filter(Boolean);
 
 /** Fetch several event universes in parallel and merge them (deduped) into one board. */

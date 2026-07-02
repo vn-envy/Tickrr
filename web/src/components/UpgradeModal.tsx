@@ -5,7 +5,9 @@
  * Tickrr paywall — shown when a free user hits a Pro-gated feature (live Gemini analysis,
  * ask-anything advisory, Deliberation Room). States the concrete unlock and routes to checkout.
  */
-import { X, Lock, Scale, Sparkles, GitCompareArrows, Zap } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Lock, Scale, Sparkles, GitCompareArrows, Zap, Ticket } from "lucide-react";
+import { fetchEventPasses, type Plan } from "../lib/premium";
 
 interface Props {
   open: boolean;
@@ -22,6 +24,11 @@ const UNLOCKS = [
 ];
 
 export default function UpgradeModal({ open, onClose, onSelect, reason }: Props) {
+  const [passes, setPasses] = useState<Array<Plan & { price: string }>>([]);
+  useEffect(() => {
+    if (open) fetchEventPasses().then(setPasses).catch(() => setPasses([]));
+  }, [open]);
+
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[110] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 font-mono">
@@ -55,6 +62,25 @@ export default function UpgradeModal({ open, onClose, onSelect, reason }: Props)
           >
             Founder's Pass — $99 once, lifetime
           </button>
+
+          {passes.length > 0 && (
+            <div className="mt-4 pt-3 border-t border-[#2D333B]">
+              <div className="flex items-center justify-center gap-1.5 text-[#FF9900] text-[9px] font-bold tracking-widest mb-2">
+                <Ticket className="w-3 h-3" /> OR GRAB AN EVENT PASS
+              </div>
+              <div className="flex flex-wrap justify-center gap-1.5">
+                {passes.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => onSelect(p.id)}
+                    className="cursor-pointer text-[10px] border border-[#FF9900]/40 text-[#FF9900] hover:bg-[#FF9900]/10 font-bold px-2.5 py-1 rounded transition"
+                  >
+                    {p.label} · {p.price}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <p className="text-[#D1D4DC]/30 text-[9px] mt-3">Secure checkout via Stripe · cancel anytime · intel only, never advice</p>
         </div>
       </div>

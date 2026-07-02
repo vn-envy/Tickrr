@@ -42,6 +42,14 @@ export async function fetchPlans(): Promise<{ stripe: boolean; plans: Plan[] }> 
   }
 }
 
+/** Event passes = one-time PLANS whose id starts with "pass_". Priced in dollars for display. */
+export async function fetchEventPasses(): Promise<Array<Plan & { price: string }>> {
+  const { plans } = await fetchPlans();
+  return plans
+    .filter((p) => p.id.startsWith("pass_"))
+    .map((p) => ({ ...p, price: `$${Math.round(p.amount / 100)}` }));
+}
+
 /**
  * Start checkout for a plan. Returns a Stripe hosted-checkout URL when a key is configured,
  * or { demo: true } when not — in which case the caller unlocks Pro locally.

@@ -4,12 +4,14 @@
  *
  * Tickrr homepage — brand + story + features + pricing. Three.js hero globe.
  */
+import { useState, useEffect } from "react";
 import TickrrLogo from "./TickrrLogo";
 import HeroGlobe from "./HeroGlobe";
 import ThemeToggle from "./ThemeToggle";
+import { fetchEventPasses, type Plan } from "../lib/premium";
 import {
   Radar, GitCompareArrows, User, ShieldCheck, Sparkles, LineChart,
-  ArrowRight, Check, Lock,
+  ArrowRight, Check, Lock, Ticket,
 } from "lucide-react";
 
 interface Props {
@@ -53,6 +55,8 @@ const PLANS = [
 
 export default function Home({ onEnter, onGoPro, premium }: Props) {
   const act = (id: string) => (id === "free" ? onEnter() : onGoPro(id));
+  const [passes, setPasses] = useState<Array<Plan & { price: string }>>([]);
+  useEffect(() => { fetchEventPasses().then(setPasses).catch(() => setPasses([])); }, []);
 
   return (
     <div className="min-h-screen bg-[#050608] text-[#D1D4DC] font-sans scanline-overlay relative overflow-x-hidden">
@@ -192,6 +196,28 @@ export default function Home({ onEnter, onGoPro, premium }: Props) {
             </div>
           ))}
         </div>
+        {passes.length > 0 && (
+          <div className="mt-8 border-t border-[#2D333B]/60 pt-6">
+            <div className="flex items-center justify-center gap-2 font-mono text-[11px] tracking-widest text-[#FF9900] mb-1">
+              <Ticket className="w-3.5 h-3.5" /> EVENT PASSES
+            </div>
+            <p className="text-center text-[12px] text-[#D1D4DC]/50 font-sans mb-4">
+              Not ready to subscribe? Unlock Pro for a single spectacle — pay once, ride the whole event.
+            </p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {passes.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => act(p.id)}
+                  disabled={premium}
+                  className="cursor-pointer flex items-center gap-1.5 border border-[#FF9900]/40 hover:bg-[#FF9900]/10 text-[#FF9900] font-mono text-[11px] font-bold px-3 py-1.5 rounded transition disabled:opacity-40 disabled:cursor-default"
+                >
+                  {p.label} <span className="text-white">{p.price}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <p className="text-center text-[10px] text-[#D1D4DC]/30 font-mono mt-6">
           Secure checkout via Stripe. Cancel anytime. Prices in USD.
         </p>

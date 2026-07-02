@@ -17,6 +17,12 @@ const stripe = STRIPE_KEY ? new Stripe(STRIPE_KEY, { apiVersion: "2024-06-20" } 
 const PLANS: Record<string, { label: string; amount: number; mode: "subscription" | "payment"; interval?: "month" }> = {
   pro: { label: "Tickrr Pro", amount: 1900, mode: "subscription", interval: "month" },
   founder: { label: "Tickrr Founder's Pass — lifetime", amount: 9900, mode: "payment" },
+  // Event Passes — one-time unlocks of Pro tuned to a single spectacle's window.
+  pass_wc: { label: "World Cup Pass", amount: 2900, mode: "payment" },
+  pass_nfl: { label: "NFL Season Pass", amount: 1900, mode: "payment" },
+  pass_nba: { label: "NBA Season Pass", amount: 1900, mode: "payment" },
+  pass_mlb: { label: "World Series Pass", amount: 1900, mode: "payment" },
+  pass_f1: { label: "F1 Season Pass", amount: 1900, mode: "payment" },
 };
 
 // ---- Growth engine (free tier): draft from live signals -> you approve -> publish -----------
@@ -56,7 +62,7 @@ async function draftCopy(s: Signal): Promise<string> {
 }
 
 // Which events the autonomous drafts pull signals from — "follow the money" across spectacles.
-const GROWTH_QUERIES = (process.env.GROWTH_QUERIES || "World Cup,NFL").split(",").map((s) => s.trim()).filter(Boolean);
+const GROWTH_QUERIES = (process.env.GROWTH_QUERIES || "World Cup,NFL,NBA,MLB,F1").split(",").map((s) => s.trim()).filter(Boolean);
 
 async function generateDrafts(count = 3): Promise<Draft[]> {
   const pools: Signal[][] = [];
