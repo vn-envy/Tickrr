@@ -5,6 +5,7 @@
 
 import { useState } from "react";
 import { SportsEntity } from "../types";
+import { getFavorites, toggleFavorite } from "../lib/watchlist";
 import { Search, Trophy, Users, Star } from "lucide-react";
 
 interface MarketWatchProps {
@@ -22,18 +23,38 @@ export default function MarketWatch({
 }: MarketWatchProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<"all" | "athlete" | "team">("all");
+  const [leagueFilter, setLeagueFilter] = useState<string>("all"); // "all" | "★" | <league>
+  const [favorites, setFavorites] = useState<Set<string>>(() => getFavorites());
 
-  // Filter entities based on search, sport filter, and category tab
+  const toggleFav = (id: string) => setFavorites(new Set(toggleFavorite(id)));
+
+  // Distinct event universes present, for the segmentation chips.
+  const leagues = Array.from(new Set(entities.map((e) => e.league).filter(Boolean))) as string[];
+
+  const chip = (v: string) =>
+    `cursor-pointer px-2 py-0.5 rounded border transition ${
+      leagueFilter === v
+        ? "bg-[#FF9900] text-black border-[#FF9900] font-black"
+        : "border-[#2D333B] text-[#D1D4DC]/60 hover:text-white hover:border-[#FF9900]/40"
+    }`;
+
+  // Filter entities: search + sport + category + league/watchlist chip.
   const filtered = entities.filter((item) => {
+    const q = searchQuery.toLowerCase();
     const matchesSearch =
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.ticker.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.team.toLowerCase().includes(searchQuery.toLowerCase());
-    
+      item.name.toLowerCase().includes(q) ||
+      item.ticker.toLowerCase().includes(q) ||
+      item.team.toLowerCase().includes(q) ||
+      (item.league || "").toLowerCase().includes(q);
+
     const matchesSport = sportFilter ? item.sport === sportFilter : true;
     const matchesCategory = categoryFilter === "all" ? true : item.category === categoryFilter;
+    const matchesLeague =
+      leagueFilter === "all" ? true
+      : leagueFilter === "★" ? favorites.has(item.id)
+      : (item.league || "") === leagueFilter;
 
-    return matchesSearch && matchesSport && matchesCategory;
+    return matchesSearch && matchesSport && matchesCategory && matchesLeague;
   });
 
   return (
@@ -105,6 +126,19 @@ export default function MarketWatch({
         </div>
       </div>
 
+      {/* League segmentation + personal watchlist */}
+      {(leagues.length > 1 || favorites.size > 0) && (
+        <div className="px-2 py-1.5 border-b border-[#2D333B] bg-[#0B0E11]/30 flex items-center gap-1.5 flex-wrap font-mono text-[9px] tracking-wider select-none">
+          <button onClick={() => setLeagueFilter("all")} className={chip("all")}>ALL</button>
+          {leagues.map((lg) => (
+            <button key={lg} onClick={() => setLeagueFilter(lg)} className={chip(lg)}>{lg.toUpperCase()}</button>
+          ))}
+          <button onClick={() => setLeagueFilter("★")} className={`${chip("★")} ml-auto flex items-center gap-1`}>
+            <Star className="w-2.5 h-2.5" /> WATCHLIST{favorites.size ? ` · ${favorites.size}` : ""}
+          </button>
+        </div>
+      )}
+
       {/* Grid Table */}
       <div className="flex-1 overflow-auto min-h-[220px]">
         <table className="w-full text-left border-collapse">
@@ -139,11 +173,20 @@ export default function MarketWatch({
                         : "hover:bg-[#1C2128]/40 text-[#D1D4DC]"
                     }`}
                   >
-                    {/* Ticker & Name */}
-                    <td className="py-2 px-3 flex flex-col relative">
+                    {/* Watchlist star · Ticker & Name */}
+                    <td className="py-2 px-3 relative">
                       {isActive && (
                         <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#FF9900]" />
                       )}
+                      <div className="flex items-start gap-1.5">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleFav(item.id); }}
+                          title={favorites.has(item.id) ? "Remove from watchlist" : "Add to watchlist"}
+                          className="mt-0.5 shrink-0 cursor-pointer"
+                        >
+                          <Star className={`w-3 h-3 transition ${favorites.has(item.id) ? "fill-[#FF9900] text-[#FF9900]" : "text-[#D1D4DC]/25 hover:text-[#FF9900]"}`} />
+                        </button>
+                        <div className="flex flex-col min-w-0">
                       <span className={`font-bold tracking-wider ${isActive ? "text-[#FF9900]" : "text-[#FF9900]/80 group-hover:text-[#FF9900]"}`}>
                         {item.ticker}
                       </span>
@@ -172,6 +215,8 @@ export default function MarketWatch({
                           ⚽ {item.enrichment.topScorer} {Math.round(item.enrichment.topScorerProb ?? 0)}%
                         </span>
                       )}
+                        </div>
+                      </div>
                     </td>
 
                     {/* Event */}

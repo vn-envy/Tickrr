@@ -9,6 +9,7 @@ export interface SportsEntity {
   ticker: string;
   sport: "Basketball" | "Football" | "Soccer" | "F1" | "Tennis";
   team: string;
+  league?: string; // event universe this market came from (e.g. "World Cup", "NFL")
   value: number; // Valuation / Index score (e.g., 92.4)
   change: number; // 24h performance delta (%)
   efficiency: number; // PER or true efficiency

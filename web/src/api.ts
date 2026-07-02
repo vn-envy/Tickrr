@@ -181,12 +181,13 @@ export async function fetchMarketsMulti(queries: string[] = MARKET_QUERIES, perQ
   const lists = await Promise.all(queries.map((q) => fetchMarkets(q, perQuery).catch(() => [] as SportsEntity[])));
   const seen = new Set<string>();
   const merged: SportsEntity[] = [];
-  for (const list of lists) {
+  lists.forEach((list, i) => {
+    const league = queries[i];
     for (const e of list) {
       const key = e.id || e.ticker || e.name;
-      if (key && !seen.has(key)) { seen.add(key); merged.push(e); }
+      if (key && !seen.has(key)) { seen.add(key); merged.push({ ...e, league }); }
     }
-  }
+  });
   return merged;
 }
 
