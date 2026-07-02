@@ -106,9 +106,32 @@ def _crypto_key(s: MarketSnapshot) -> tuple[str, int, str] | None:
     return asset, int(m.group(1).replace(",", "")), direction
 
 
+# Cross-venue Fed match: Polymarket "Fed Decision in {month}?" outcome <-> Kalshi KXFEDDECISION,
+# keyed by (meeting year, month, outcome). Same decision, same meeting, same outcome.
+_FED_POLY_OUTCOME = {
+    "no change": "hold",
+    "25 bps increase": "hike25",
+    "50+ bps increase": "hike50",
+    "25 bps decrease": "cut25",
+    "50+ bps decrease": "cut50",
+}
+
+
+def _fed_key(s: MarketSnapshot) -> tuple[int, int, str] | None:
+    """(year, month, outcome_code) for a Polymarket Fed-decision market, else None.
+    Meeting month/year come from the resolution date (= the meeting date)."""
+    if "fed decision" not in (s.event_title or "").lower():
+        return None
+    code = _FED_POLY_OUTCOME.get((s.group_title or "").strip().lower())
+    ds = str(s.end_date or "")
+    if not code or len(ds) < 7:
+        return None
+    return int(ds[:4]), int(ds[5:7]), code
+
+
 def _intel(s: MarketSnapshot, kalshi_team: dict | None = None,
            kalshi_player: dict | None = None, player_index: dict | None = None,
-           crypto_ref: dict | None = None) -> MarketIntel:
+           crypto_ref: dict | None = None, fed_ref: dict | None = None) -> MarketIntel:
     """Fair-value read + cross-venue divergence + (for teams) player-derived enrichment."""
     primary = s.outcomes[0] if s.outcomes else Outcome(label="Yes", price=s.last_price or 0.0)
     fv = fair_value.assess(
@@ -137,6 +160,12 @@ def _intel(s: MarketSnapshot, kalshi_team: dict | None = None,
         if ck:
             asset, thr, direction = ck
             entry = ((crypto_ref.get(asset) or {}).get(direction) or {}).get(thr)
+            if entry and entry.get("prob") is not None:
+                kp, ku = entry["prob"], entry.get("url")
+    if kp is None and fed_ref:
+        fk = _fed_key(s)
+        if fk:
+            entry = fed_ref.get(fk)
             if entry and entry.get("prob") is not None:
                 kp, ku = entry["prob"], entry.get("url")
 
@@ -196,6 +225,7 @@ async def _build_intel(query: str, limit: int) -> list[MarketIntel]:
     ql = query.lower()
     is_wc = "world cup" in ql
     is_crypto = any(k in ql for k in ("bitcoin", "ethereum", "btc", "eth", "crypto"))
+    is_macro = any(k in ql for k in ("fed", "fomc", "rate", "interest"))
     kalshi_team = await kalshi_client.get_winner_probs() if is_wc else {}
     kalshi_player = await kalshi_client.get_winner_probs(series=GOAL_LEADER_SERIES) if is_wc else {}
     player_index = _build_player_index(snapshots) if is_wc else {}
@@ -208,7 +238,8 @@ async def _build_intel(query: str, limit: int) -> list[MarketIntel]:
             kalshi_client.get_dip_probs(ETH_DIP_SERIES),
         )
         crypto_ref = {"BTC": {"up": btc_up, "down": btc_dn}, "ETH": {"up": eth_up, "down": eth_dn}}
-    intel = [_intel(s, kalshi_team, kalshi_player, player_index, crypto_ref) for s in snapshots]
+    fed_ref = await kalshi_client.get_fed_decision_probs() if is_macro else None
+    intel = [_intel(s, kalshi_team, kalshi_player, player_index, crypto_ref, fed_ref) for s in snapshots]
     _INTEL_CACHE[key] = (now, intel)
     return intel
 

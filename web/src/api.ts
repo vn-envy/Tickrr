@@ -181,13 +181,13 @@ export async function fetchMarkets(query = "World Cup", limit = 40): Promise<Spo
 // The event universes the terminal covers — Tickrr follows the money across spectacles.
 // Configurable at build time via VITE_MARKET_QUERIES (comma-separated).
 export const MARKET_QUERIES: string[] = (
-  (import.meta as any).env?.VITE_MARKET_QUERIES || "World Cup,NFL,NBA,MLB,F1,election,Fed rate,Bitcoin,Ethereum"
+  (import.meta as any).env?.VITE_MARKET_QUERIES || "World Cup,NFL,NBA,MLB,F1,election,Fed,Bitcoin,Ethereum"
 ).split(",").map((s: string) => s.trim()).filter(Boolean);
 
 // Group individual queries into Bloomberg-style categories for the league/category chips.
 const CATEGORY: Record<string, string> = {
   election: "Politics", trump: "Politics",
-  "fed rate": "Macro",
+  fed: "Macro",
   bitcoin: "Crypto", ethereum: "Crypto",
   nobel: "Culture",
 };

@@ -35,6 +35,17 @@ ETH_REACH_SERIES = "KXETHMAXY"
 BTC_DIP_SERIES = "KXBTCMINY"
 ETH_DIP_SERIES = "KXETHMINY"
 
+# FOMC rate decision, one market per outcome per meeting (close_time = meeting date). Maps 1:1 to
+# Polymarket's "Fed Decision in {month}?" outcomes — the same question at the same meeting.
+FED_DECISION_SERIES = "KXFEDDECISION"
+_FED_OUTCOME = {  # Kalshi yes_sub_title -> canonical code
+    "fed maintains rate": "hold",
+    "hike 25bps": "hike25",
+    "hike >25bps": "hike50",
+    "cut 25bps": "cut25",
+    "cut >25bps": "cut50",
+}
+
 # Per-series process cache so a Kalshi blip never empties the board (last-known-good).
 _CACHE: dict = {}  # series -> {"ts": float, "probs": dict}
 _CACHE_TTL_S = 30.0
@@ -147,6 +158,30 @@ class KalshiClient:
     async def get_dip_probs(self, series: str) -> dict[int, dict]:
         """P(dip to X by year end) per strike — the 'Below $X' legs."""
         return await self._strike_probs(series, "below")
+
+    async def get_fed_decision_probs(self) -> dict[tuple[int, int, str], dict]:
+        """(year, month, outcome_code) -> {prob, ticker, url} for FOMC rate-decision markets.
+        Keyed by meeting month (close_time) + canonical outcome, so it pairs exactly with a
+        Polymarket 'Fed Decision in {month}?' outcome. Cached; last-known-good on failure."""
+        ckey = f"{FED_DECISION_SERIES}|dec"
+        now = time.time()
+        cached = _CACHE.get(ckey)
+        if cached and cached["probs"] and now - cached["ts"] < _CACHE_TTL_S:
+            return cached["probs"]
+        markets = await self._fetch_markets(FED_DECISION_SERIES)
+        if not markets:
+            return cached["probs"] if cached else {}
+        out: dict[tuple[int, int, str], dict] = {}
+        for m in markets:
+            code = _FED_OUTCOME.get((m.get("yes_sub_title") or "").strip().lower())
+            prob = _mid(m)
+            ct = str(m.get("close_time") or "")
+            if not code or prob is None or len(ct) < 7:
+                continue
+            key = (int(ct[:4]), int(ct[5:7]), code)
+            out[key] = {"prob": round(prob, 4), "ticker": m.get("ticker"), "url": _kalshi_url(FED_DECISION_SERIES)}
+        _CACHE[ckey] = {"ts": now, "probs": out}
+        return out
 
     async def get_threshold_probs(self, series: str) -> dict[str, dict]:
         """normalized player -> {prob, threshold, url} for 'Player: N+' per-match series
