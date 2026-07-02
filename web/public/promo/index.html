@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tickrr — the Bloomberg Terminal for sports prediction markets</title>
+<meta name="description" content="Real-time trading analytics for sports markets. World Cup · NFL · NBA · MLB · F1. Intel only." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --green:#00FF66; --amber:#FF9900; --red:#FF3B30;
+    --bg:#050608; --panel:#0B0E11; --border:#2D333B; --text:#D1D4DC;
+    --mono:"JetBrains Mono",ui-monospace,monospace; --sans:"Inter",system-ui,sans-serif;
+    --ease:cubic-bezier(.22,.61,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);overflow:hidden}
+  #net{position:fixed;inset:0;z-index:0}
+  .stage-wrap{position:fixed;inset:0;z-index:1}
+  .scanlines{position:fixed;inset:0;z-index:4;pointer-events:none;
+    background:linear-gradient(rgba(0,0,0,0) 50%, rgba(0,0,0,.10) 50%), linear-gradient(90deg, rgba(0,255,102,.02), rgba(255,153,0,.015));
+    background-size:100% 3px,3px 100%;mix-blend-mode:overlay;opacity:.5}
+  .vignette{position:fixed;inset:0;z-index:3;pointer-events:none;
+    background:radial-gradient(120% 100% at 50% 45%, transparent 55%, rgba(0,0,0,.55) 100%)}
+
+  /* progress */
+  .progress{position:fixed;top:0;left:0;right:0;height:3px;z-index:6;display:flex;gap:3px;padding:6px 10px 0}
+  .progress i{flex:1;height:3px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden}
+  .progress i b{display:block;height:100%;width:0;background:var(--green);box-shadow:0 0 8px rgba(0,255,102,.6)}
+  .progress i.done b{width:100%}
+  .progress i.run b{animation:fill var(--d,3.6s) linear forwards}
+  @keyframes fill{from{width:0}to{width:100%}}
+
+  /* brand chip top-left */
+  .brand{position:fixed;top:16px;left:18px;z-index:6;display:flex;align-items:center;gap:8px;font-family:var(--mono);font-weight:800;letter-spacing:.14em;font-size:13px}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:blink 1.8s infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+  .brand small{color:rgba(209,212,220,.45);font-weight:600;letter-spacing:.24em}
+
+  /* scenes */
+  .scene{position:absolute;inset:0;opacity:0;visibility:hidden;transition:opacity .7s var(--ease);display:flex;align-items:flex-end}
+  .scene.active{opacity:1;visibility:visible}
+  .stage{position:absolute;inset:0;overflow:hidden}
+  .stage .shot{width:100%;height:100%;object-fit:cover;object-position:var(--pos,center);transform:scale(1.05);opacity:.9}
+  .scene.active .stage .shot{animation:ken var(--d,3.6s) var(--ease) both}
+  @keyframes ken{from{transform:scale(1.04)}to{transform:scale(1.16)}}
+  .scrim{position:absolute;inset:0;background:linear-gradient(0deg, rgba(5,6,8,.96) 0%, rgba(5,6,8,.62) 30%, rgba(5,6,8,.12) 60%, rgba(5,6,8,.4) 100%)}
+
+  .copy{position:relative;z-index:2;padding:0 clamp(24px,7vw,120px) clamp(48px,10vh,120px);max-width:1000px}
+  .eyebrow{font-family:var(--mono);font-weight:700;letter-spacing:.32em;font-size:clamp(10px,1.1vw,13px);color:var(--amber);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+  .eyebrow::before{content:"";width:26px;height:2px;background:var(--amber);display:inline-block}
+  .headline{font-weight:900;font-size:clamp(30px,5.6vw,68px);line-height:1.02;letter-spacing:-.02em;color:#fff;text-wrap:balance}
+  .headline .g{color:var(--green)}
+  .headline .a{color:var(--amber)}
+  .sub{margin-top:18px;font-size:clamp(14px,1.7vw,21px);line-height:1.5;color:rgba(209,212,220,.75);max-width:640px}
+
+  /* kinetic entrance */
+  .scene.active .eyebrow{animation:rise .7s .10s var(--ease) both}
+  .scene.active .headline{animation:rise .8s .20s var(--ease) both}
+  .scene.active .sub{animation:rise .8s .38s var(--ease) both}
+  @keyframes rise{from{opacity:0;transform:translateY(30px);filter:blur(7px)}to{opacity:1;transform:none;filter:blur(0)}}
+
+  /* intro + cta centered variants */
+  .scene--center{align-items:center;justify-content:center}
+  .scene--center .copy{text-align:center;max-width:900px}
+  .scene--center .eyebrow{justify-content:center}
+  .scene--center .eyebrow::before{display:none}
+  .wordmark{font-weight:900;font-size:clamp(56px,13vw,150px);letter-spacing:-.03em;color:#fff;line-height:.95}
+  .wordmark .bolt{color:var(--green);text-shadow:0 0 30px rgba(0,255,102,.5)}
+  .tagline{margin-top:10px;font-family:var(--mono);letter-spacing:.28em;font-size:clamp(11px,1.5vw,17px);color:rgba(209,212,220,.7);text-transform:uppercase}
+  .disc{margin-top:18px;font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--green);opacity:.7}
+
+  .btns{margin-top:34px;display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+  .btn{font-family:var(--mono);font-weight:800;letter-spacing:.06em;font-size:14px;padding:14px 26px;border-radius:8px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);transition:transform .2s var(--ease),box-shadow .2s}
+  .btn:hover{transform:translateY(-2px)}
+  .btn--go{background:var(--green);color:#000;border-color:var(--green);box-shadow:0 0 24px rgba(0,255,102,.35)}
+  .btn--ghost{color:var(--text)}
+  .btn--ghost:hover{border-color:rgba(0,255,102,.5);color:var(--green)}
+  .passes{margin-top:22px;font-family:var(--mono);font-size:12px;color:rgba(209,212,220,.55);letter-spacing:.04em}
+  .passes b{color:var(--amber)}
+
+  /* start / replay overlay */
+  #start{position:fixed;inset:0;z-index:8;background:radial-gradient(120% 100% at 50% 40%, rgba(11,14,17,.6), rgba(5,6,8,.96));
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;cursor:pointer;transition:opacity .5s}
+  #start.hide{opacity:0;pointer-events:none}
+  .play{width:96px;height:96px;border-radius:50%;border:2px solid var(--green);display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 40px rgba(0,255,102,.35);animation:pulse 2s infinite}
+  .play::after{content:"";border-left:26px solid var(--green);border-top:16px solid transparent;border-bottom:16px solid transparent;margin-left:6px}
+  @keyframes pulse{0%,100%{box-shadow:0 0 30px rgba(0,255,102,.25)}50%{box-shadow:0 0 55px rgba(0,255,102,.55)}}
+  #start .t{font-weight:900;font-size:clamp(30px,6vw,64px);color:#fff}
+  #start .t .bolt{color:var(--green)}
+  #start .s{font-family:var(--mono);letter-spacing:.24em;font-size:12px;color:rgba(209,212,220,.6);text-transform:uppercase}
+
+  .hint{position:fixed;bottom:16px;right:18px;z-index:6;font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:rgba(209,212,220,.35)}
+</style>
+</head>
+<body>
+  <canvas id="net"></canvas>
+  <div class="vignette"></div>
+
+  <div class="progress" id="progress"></div>
+  <div class="brand"><span class="dot"></span>TICKRR<small>TICKER&nbsp;LABS</small></div>
+
+  <div class="stage-wrap" id="scenes">
+    <!-- 0: intro -->
+    <section class="scene scene--center" data-dur="3400">
+      <div class="copy">
+        <div class="wordmark"><span class="bolt">⚡</span>TICKRR</div>
+        <div class="tagline">THE BLOOMBERG TERMINAL FOR SPORTS PREDICTION MARKETS</div>
+        <div class="disc">INTEL ONLY · NEVER PICKS</div>
+      </div>
+    </section>
+
+    <!-- 1: hero -->
+    <section class="scene" data-dur="4000" style="--pos:center">
+      <div class="stage"><img class="shot" src="hero.png" alt=""></div>
+      <div class="scrim"></div>
+      <div class="copy">
+        <div class="eyebrow">Live for the World Cup 2026</div>
+        <h2 class="headline">Trade on <span class="g">information</span>,<br>not vibes.</h2>
+        <p class="sub">Live Polymarket &amp; Kalshi data → decision-quality intelligence, in a terminal that feels alive.</p>
+      </div>
+    </section>
+
+    <!-- 2: radar -->
+    <section class="scene" data-dur="3900" style="--pos:center top">
+      <div class="stage"><img class="shot" src="terminal.png" alt=""></div>
+      <div class="scrim"></div>
+      <div class="copy">
+        <div class="eyebrow">Dislocation Radar</div>
+        <h2 class="headline">See the edge the <span class="g">second</span> it opens.</h2>
+        <p class="sub">Momentum, overreactions and thin-book traps — ranked by severity, live.</p>
+      </div>
+    </section>
+
+    <!-- 3: cross-venue -->
+    <section class="scene" data-dur="3500" style="--pos:center top">
+      <div class="stage"><img class="shot" src="terminal.png" alt=""></div>
+      <div class="scrim"></div>
+      <div class="copy">
+        <div class="eyebrow">Cross-venue divergence</div>
+        <h2 class="headline">Polymarket vs Kalshi.<br>We compute the <span class="a">gap</span>.</h2>
+        <p class="sub">The same outcome, two books — so you see which one is mispriced.</p>
+      </div>
+    </section>
+
+    <!-- 4: multi-league -->
+    <section class="scene" data-dur="4000" style="--pos:center">
+      <div class="stage"><img class="shot" src="nba.png" alt=""></div>
+      <div class="scrim"></div>
+      <div class="copy">
+        <div class="eyebrow">One engine, every spectacle</div>
+        <h2 class="headline"><span class="g">World Cup</span> · NFL · NBA · MLB · F1</h2>
+        <p class="sub">We follow the money — add any league by config as the interest heats up.</p>
+      </div>
+    </section>
+
+    <!-- 5: gemini intel -->
+    <section class="scene" data-dur="3700" style="--pos:right bottom">
+      <div class="stage"><img class="shot" src="terminal.png" alt=""></div>
+      <div class="scrim"></div>
+      <div class="copy">
+        <div class="eyebrow">Tickrr Intel Engine · Gemini</div>
+        <h2 class="headline">Ask <span class="g">why it moved</span>.</h2>
+        <p class="sub">Grounded by Gemini + Google Search — cited, fresh, decision-quality reads.</p>
+      </div>
+    </section>
+
+    <!-- 6: pro -->
+    <section class="scene" data-dur="3700" style="--pos:center">
+      <div class="stage"><img class="shot" src="paywall.png" alt=""></div>
+      <div class="scrim"></div>
+      <div class="copy">
+        <div class="eyebrow">Tickrr Pro</div>
+        <h2 class="headline">Two AI experts <span class="g">debate</span> your call.</h2>
+        <p class="sub">The Deliberation Room, live analysis, cross-venue alerts — facts only, never advice.</p>
+      </div>
+    </section>
+
+    <!-- 7: autonomous growth -->
+    <section class="scene" data-dur="3700" style="--pos:center">
+      <div class="stage"><img class="shot" src="growth.png" alt=""></div>
+      <div class="scrim"></div>
+      <div class="copy">
+        <div class="eyebrow">Runs itself</div>
+        <h2 class="headline">An agent that <span class="a">markets itself</span>.</h2>
+        <p class="sub">It drafts posts from live signals; you approve; it auto-publishes to X, LinkedIn &amp; more.</p>
+      </div>
+    </section>
+
+    <!-- 8: my space -->
+    <section class="scene" data-dur="3500" style="--pos:center">
+      <div class="stage"><img class="shot" src="myspace.png" alt=""></div>
+      <div class="scrim"></div>
+      <div class="copy">
+        <div class="eyebrow">My Space</div>
+        <h2 class="headline">Follow your teams.<br><span class="g">Everywhere</span> you sign in.</h2>
+        <p class="sub">A personal watchlist that syncs across devices — your board, your signals.</p>
+      </div>
+    </section>
+
+    <!-- 9: CTA -->
+    <section class="scene scene--center" data-dur="99999" style="--pos:center">
+      <div class="stage"><img class="shot" src="pricing.png" alt="" style="opacity:.35"></div>
+      <div class="scrim" style="background:rgba(5,6,8,.82)"></div>
+      <div class="copy">
+        <div class="eyebrow">Start free · go Pro when you want the edge</div>
+        <h2 class="headline">The edge is <span class="g">live</span>.</h2>
+        <div class="passes">Free forever · Pro <b>$19/mo</b> · Founder <b>$99</b> · or grab an <b>Event Pass</b></div>
+        <div class="btns">
+          <a class="btn btn--go" href="https://tickrr-web-qqocdd33ra-uc.a.run.app" target="_blank" rel="noreferrer">LAUNCH TERMINAL →</a>
+          <button class="btn btn--ghost" id="replay">↺ REPLAY</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="scanlines"></div>
+
+  <div id="start">
+    <div class="play"></div>
+    <div class="t"><span class="bolt">⚡</span> TICKRR</div>
+    <div class="s">Press play · the 35-second tour</div>
+  </div>
+  <div class="hint">CLICK TO ADVANCE</div>
+
+<script>
+(function(){
+  // ---- animated connection-network background (on-brand, free) ----
+  const c = document.getElementById('net'), x = c.getContext('2d');
+  let W,H,pts;
+  function resize(){ W=c.width=innerWidth*devicePixelRatio; H=c.height=innerHeight*devicePixelRatio;
+    const n = Math.min(90, Math.floor(innerWidth/16));
+    pts = Array.from({length:n},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.25*devicePixelRatio,vy:(Math.random()-.5)*.25*devicePixelRatio})); }
+  resize(); addEventListener('resize',resize);
+  function tick(){
+    x.clearRect(0,0,W,H);
+    for(const p of pts){ p.x+=p.vx;p.y+=p.vy; if(p.x<0||p.x>W)p.vx*=-1; if(p.y<0||p.y>H)p.vy*=-1; }
+    for(let i=0;i<pts.length;i++){
+      for(let j=i+1;j<pts.length;j++){
+        const a=pts[i],b=pts[j],dx=a.x-b.x,dy=a.y-b.y,d=Math.hypot(dx,dy),m=160*devicePixelRatio;
+        if(d<m){ x.strokeStyle='rgba(0,255,102,'+(.12*(1-d/m))+')'; x.lineWidth=devicePixelRatio; x.beginPath();x.moveTo(a.x,a.y);x.lineTo(b.x,b.y);x.stroke(); }
+      }
+      x.fillStyle='rgba(0,255,102,.5)'; x.beginPath(); x.arc(pts[i].x,pts[i].y,1.4*devicePixelRatio,0,7); x.fill();
+    }
+    requestAnimationFrame(tick);
+  } tick();
+
+  // ---- scene timeline ----
+  const scenes=[...document.querySelectorAll('.scene')];
+  const prog=document.getElementById('progress');
+  scenes.forEach(()=>{ const i=document.createElement('i'); i.innerHTML='<b></b>'; prog.appendChild(i); });
+  const bars=[...prog.children];
+  let idx=-1, timer=null;
+  function show(i){
+    if(i>=scenes.length){ return; }
+    if(idx>=0){ scenes[idx].classList.remove('active'); }
+    idx=i; const s=scenes[i]; const dur=+s.dataset.dur;
+    s.style.setProperty('--d',(dur/1000)+'s');
+    // restart entrance/kenburns
+    void s.offsetWidth; s.classList.add('active');
+    bars.forEach((b,k)=>{ b.classList.remove('run'); if(k<i)b.classList.add('done'); else b.classList.remove('done'); });
+    if(i<scenes.length-1){ const b=bars[i]; b.style.setProperty('--d',(dur/1000)+'s'); void b.offsetWidth; b.classList.add('run'); }
+    else { bars.forEach(b=>b.classList.add('done')); }
+    clearTimeout(timer);
+    if(dur<90000){ timer=setTimeout(()=>show(i+1),dur); }
+  }
+  function start(){ document.getElementById('start').classList.add('hide'); idx=-1; show(0); }
+  function next(){ if(idx>=0 && idx<scenes.length-1){ show(idx+1); } }
+
+  document.getElementById('start').addEventListener('click',start);
+  document.getElementById('scenes').addEventListener('click',(e)=>{ if(e.target.closest('a,button'))return; next(); });
+  document.addEventListener('keydown',(e)=>{ if(e.code==='Space'){e.preventDefault();next();} });
+  document.getElementById('replay').addEventListener('click',(e)=>{e.stopPropagation();start();});
+})();
+</script>
+</body>
+</html>

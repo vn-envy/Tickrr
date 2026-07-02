@@ -12,7 +12,7 @@
 [![Firestore](https://img.shields.io/badge/State-Firestore-FFA000?style=flat-square&logo=firebase&logoColor=white)](https://cloud.google.com/firestore)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=flat-square)](LICENSE)
 
-**[🌐 Live terminal](https://tickrr-web-qqocdd33ra-uc.a.run.app) · [🔌 API docs](https://tickrr-api-qqocdd33ra-uc.a.run.app/docs) · [🚀 Deploy guide](docs/DEPLOY.md)**
+**[🌐 Live terminal](https://tickrr-web-qqocdd33ra-uc.a.run.app) · [▶ 35-sec tour](https://tickrr-web-qqocdd33ra-uc.a.run.app/promo/) · [🔌 API docs](https://tickrr-api-qqocdd33ra-uc.a.run.app/docs) · [🚀 Deploy guide](docs/DEPLOY.md)**
 
 ![Tickrr hero](docs/media/hero.png)
 
