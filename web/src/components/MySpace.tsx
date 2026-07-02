@@ -7,7 +7,7 @@
  * per-user Firestore once signed in). Intel only.
  */
 import { SportsEntity } from "../types";
-import { getFavorites, toggleFavorite } from "../lib/watchlist";
+import { getFavorites, toggleFavorite, onFavoritesChange } from "../lib/watchlist";
 import { Star, X, ArrowUpRight } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -26,6 +26,9 @@ export default function MySpace({ open, onClose, entities, onSelect, user }: Pro
   useEffect(() => {
     if (open) setFavorites(getFavorites());
   }, [open]);
+
+  // Reflect cloud merges / changes from other panels.
+  useEffect(() => onFavoritesChange(() => setFavorites(getFavorites())), []);
 
   if (!open) return null;
 

@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SportsEntity } from "../types";
-import { getFavorites, toggleFavorite } from "../lib/watchlist";
+import { getFavorites, toggleFavorite, onFavoritesChange } from "../lib/watchlist";
 import { Search, Trophy, Users, Star } from "lucide-react";
 
 interface MarketWatchProps {
@@ -31,6 +31,9 @@ export default function MarketWatch({
   const [favorites, setFavorites] = useState<Set<string>>(() => getFavorites());
 
   const toggleFav = (id: string) => setFavorites(new Set(toggleFavorite(id)));
+
+  // Stay in sync with cloud merges + other panels.
+  useEffect(() => onFavoritesChange(() => setFavorites(getFavorites())), []);
 
   // Distinct event universes present, for the segmentation chips.
   const leagues = Array.from(new Set(entities.map((e) => e.league).filter(Boolean))) as string[];

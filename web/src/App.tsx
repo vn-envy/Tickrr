@@ -22,7 +22,10 @@ import ThemeToggle from "./components/ThemeToggle";
 import UpgradeModal from "./components/UpgradeModal";
 import MySpace from "./components/MySpace";
 import { isPremium, setPremium, goPro } from "./lib/premium";
-import { Globe, RefreshCw, Layers, Lock, Rocket, Star } from "lucide-react";
+import { signInWithGoogle, signOutUser, subscribeAuth, AuthUser } from "./lib/auth";
+import { authEnabled } from "./lib/firebase";
+import { syncFavoritesFromCloud } from "./lib/watchlist";
+import { Globe, RefreshCw, Layers, Lock, Rocket, Star, LogIn } from "lucide-react";
 
 export default function App() {
   const [entities, setEntities] = useState<SportsEntity[]>(INITIAL_SPORTS_ENTITIES);
@@ -35,6 +38,13 @@ export default function App() {
   const [leagueScope, setLeagueScope] = useState<string>("all"); // global event scope
   const [entered, setEntered] = useState(false);
   const [pro, setPro] = useState(isPremium());
+  const [user, setUser] = useState<AuthUser | null>(null);
+
+  // Track sign-in; on sign-in, merge the cloud watchlist with local.
+  useEffect(() => subscribeAuth((u) => {
+    setUser(u);
+    if (u) void syncFavoritesFromCloud();
+  }), []);
 
   // Stripe Checkout return (?pro=1) + resume an already-entered session.
   useEffect(() => {
@@ -148,6 +158,27 @@ export default function App() {
         {/* Right stats indicators */}
         <div className="flex items-center gap-5 font-mono text-[10px] text-[#D1D4DC]/40">
           <ThemeToggle />
+          {authEnabled && (
+            user ? (
+              <button
+                onClick={() => signOutUser()}
+                title={`Signed in as ${user.name || user.email} · click to sign out`}
+                className="cursor-pointer flex items-center gap-1.5 border border-[#2D333B] hover:border-[#00FF66]/50 text-[#D1D4DC]/80 text-[10px] font-bold px-1.5 py-0.5 rounded transition"
+              >
+                {user.photo
+                  ? <img src={user.photo} alt="" className="w-4 h-4 rounded-full" referrerPolicy="no-referrer" />
+                  : <Star className="w-3 h-3 text-[#00FF66]" />}
+                {(user.name || "ACCOUNT").split(" ")[0].toUpperCase()}
+              </button>
+            ) : (
+              <button
+                onClick={() => signInWithGoogle()}
+                className="cursor-pointer flex items-center gap-1.5 border border-[#2D333B] hover:border-[#00FF66]/50 text-[#D1D4DC]/70 hover:text-[#00FF66] text-[10px] font-bold px-2.5 py-1 rounded transition"
+              >
+                <LogIn className="w-3 h-3" /> SIGN IN
+              </button>
+            )
+          )}
           <button
             onClick={() => setMySpaceOpen(true)}
             className="cursor-pointer flex items-center gap-1.5 bg-[#FF9900]/10 hover:bg-[#FF9900]/20 border border-[#FF9900]/40 text-[#FF9900] text-[10px] font-bold px-2.5 py-1 rounded transition"
@@ -266,7 +297,7 @@ export default function App() {
       <DeliberationRoom entity={activeEntity} open={delibOpen} onClose={() => setDelibOpen(false)} premium={pro} onUnlocked={() => setPro(true)} />
       <GrowthConsole open={growthOpen} onClose={() => setGrowthOpen(false)} />
       <UpgradeModal open={paywallOpen} onClose={() => setPaywallOpen(false)} onSelect={handleUpgrade} />
-      <MySpace open={mySpaceOpen} onClose={() => setMySpaceOpen(false)} entities={entities} onSelect={(e) => setActiveEntity(e)} />
+      <MySpace open={mySpaceOpen} onClose={() => setMySpaceOpen(false)} entities={entities} onSelect={(e) => setActiveEntity(e)} user={user} />
     </div>
   );
 }
