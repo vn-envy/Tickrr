@@ -10,7 +10,7 @@ import HeroGlobe from "./HeroGlobe";
 import ThemeToggle from "./ThemeToggle";
 import { fetchEventPasses, type Plan } from "../lib/premium";
 import {
-  Radar, GitCompareArrows, User, ShieldCheck, Sparkles, LineChart,
+  Radar, GitCompareArrows, LayoutGrid, ShieldCheck, Sparkles, LineChart,
   ArrowRight, Check, Lock, Ticket,
 } from "lucide-react";
 
@@ -23,7 +23,7 @@ interface Props {
 const FEATURES = [
   { icon: Radar, title: "Dislocation Radar", body: "Live edge signals — momentum, overreaction, and thin-book traps — ranked by severity the moment they appear." },
   { icon: GitCompareArrows, title: "Cross-Venue Divergence", body: "Polymarket vs Kalshi on the same outcome. We compute the gap so you see which book is mispriced." },
-  { icon: User, title: "Player Dossiers", body: "Per-player tickers: Golden Boot, to-score, assists, national-team link, plus a live Wikipedia attention spike." },
+  { icon: LayoutGrid, title: "Every Market · One Board", body: "Sports, politics, macro & crypto — the World Cup, the Fed, the midterms, Bitcoin — unified, with category scoping and a live catalyst calendar." },
   { icon: Sparkles, title: "Deliberation Room", body: "A secure channel where two grounded AI experts argue your stance — one for, one against. Facts only.", pro: true },
   { icon: LineChart, title: "Real Price History", body: "Implied-probability charts straight from the Polymarket CLOB, with fair-value ranges and decision-quality reads." },
   { icon: ShieldCheck, title: "Intel, Not Advice", body: "Tickrr never tells you to bet. It tells you whether a price is decision-quality — and why it moved." },
@@ -88,15 +88,16 @@ export default function Home({ onEnter, onGoPro, premium }: Props) {
         <div className="relative z-10 px-6 md:px-12 max-w-2xl">
           <div className="font-mono text-[11px] tracking-widest text-[#FF9900] mb-3 flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#00FF66] led-blink" />
-            TICKER LABS · LIVE FOR FIFA WORLD CUP 2026
+            TICKER LABS · SPORTS · POLITICS · MACRO · CRYPTO
           </div>
           <h1 className="font-sans font-black text-4xl md:text-6xl leading-[1.05] tracking-tight text-white">
-            Trade the World Cup on <span className="text-[#00FF66] terminal-glow-green">information</span>, not vibes.
+            Trade prediction markets on <span className="text-[#00FF66] terminal-glow-green">information</span>, not vibes.
           </h1>
           <p className="mt-5 text-[#D1D4DC]/70 text-base md:text-lg leading-relaxed max-w-2xl">
             Tickrr is the <span className="text-white font-semibold">Bloomberg Terminal for prediction markets</span> — turning live
-            Polymarket &amp; Kalshi data into decision-quality intelligence: fair value, dislocations, cross-venue
-            gaps, player dossiers, and an AI deliberation room. <span className="text-[#FF9900]">Intel only. Never picks.</span>
+            Polymarket &amp; Kalshi data into decision-quality intelligence across sports, politics, macro &amp; crypto:
+            fair value, dislocations, cross-venue gaps, catalyst calendars, and an AI deliberation room.
+            <span className="text-[#FF9900]"> Intel only. Never picks.</span>
           </p>
           <div className="mt-7 flex flex-wrap items-center gap-3">
             <button
@@ -113,7 +114,7 @@ export default function Home({ onEnter, onGoPro, premium }: Props) {
             </a>
           </div>
           <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 font-mono text-[11px] text-[#D1D4DC]/40">
-            <span><span className="text-[#00FF66] font-bold">$5.4B+</span> traded on WC markets</span>
+            <span><span className="text-[#00FF66] font-bold">$24B+/mo</span> across prediction markets</span>
             <span><span className="text-white font-bold">Polymarket</span> + <span className="text-white font-bold">Kalshi</span>, side by side</span>
             <span>Grounded by <span className="text-white font-bold">Gemini</span></span>
           </div>
@@ -124,10 +125,10 @@ export default function Home({ onEnter, onGoPro, premium }: Props) {
       <section className="relative z-10 px-6 md:px-12 py-16 border-t border-[#2D333B]/60 max-w-5xl">
         <div className="font-mono text-[11px] tracking-widest text-[#FF9900] mb-3">THE GAP</div>
         <p className="text-xl md:text-2xl font-sans leading-relaxed text-[#D1D4DC]/90">
-          Prediction markets are exploding — billions are trading on every match — but retail flies blind:
-          stale prices, thin books, and headline overreactions hide in plain sight. Tickrr reads both major
-          venues at once, scores every market for <span className="text-[#00FF66]">decision quality</span>, and
-          flags the <span className="text-[#FF9900]">dislocations</span> the moment they open.
+          Prediction markets are exploding — billions trade daily across sports, politics, macro and crypto — but
+          retail flies blind: stale prices, thin books, and headline overreactions hide in plain sight. Tickrr reads
+          both major venues at once, scores every market for <span className="text-[#00FF66]">decision quality</span>,
+          and flags the <span className="text-[#FF9900]">dislocations</span> the moment they open.
         </p>
       </section>
 
