@@ -7,6 +7,7 @@ and returns the deterministic fair-value read for each. Dislocation detection, t
 from __future__ import annotations
 
 import asyncio
+import re
 import time
 
 from fastapi import FastAPI, Query
@@ -18,6 +19,7 @@ from app.config import settings
 from app.data.polymarket import PolymarketClient
 from app.data.kalshi import (
     KalshiClient, normalize_team, GOAL_LEADER_SERIES, ASSISTS_SERIES, GOAL_SERIES, SOA_SERIES,
+    BTC_REACH_SERIES, ETH_REACH_SERIES,
 )
 from app.data.players import country_for
 from app.data import wiki, gdelt, calendar
@@ -73,8 +75,32 @@ def _build_player_index(snapshots: list[MarketSnapshot]) -> dict:
     return idx
 
 
+# Cross-venue crypto match: Polymarket "Will {asset} reach $X by December 31, 2026?" is the same
+# question as Kalshi's "how high this year — Above $X". We only pair the UP/reach side, for 2026,
+# with a parseable dollar threshold — so a gap is always like-for-like (never dip-vs-reach, etc.).
+_CRYPTO_YEAR = "2026"
+
+
+def _crypto_reach(s: MarketSnapshot) -> tuple[str, int] | None:
+    """(asset, threshold) for a Polymarket 2026 'reach $X' crypto market, else None."""
+    q = (s.question or "").lower()
+    if "reach" not in q or _CRYPTO_YEAR not in q:
+        return None  # excludes 'dip to' (down) and other years
+    if "bitcoin" in q:
+        asset = "BTC"
+    elif "ethereum" in q:
+        asset = "ETH"
+    else:
+        return None
+    m = re.search(r"\$([\d,]+)", q)
+    if not m:
+        return None
+    return asset, int(m.group(1).replace(",", ""))
+
+
 def _intel(s: MarketSnapshot, kalshi_team: dict | None = None,
-           kalshi_player: dict | None = None, player_index: dict | None = None) -> MarketIntel:
+           kalshi_player: dict | None = None, player_index: dict | None = None,
+           crypto_ref: dict | None = None) -> MarketIntel:
     """Fair-value read + cross-venue divergence + (for teams) player-derived enrichment."""
     primary = s.outcomes[0] if s.outcomes else Outcome(label="Yes", price=s.last_price or 0.0)
     fv = fair_value.assess(
@@ -98,6 +124,12 @@ def _intel(s: MarketSnapshot, kalshi_team: dict | None = None,
         entry = kalshi_team.get(key)
         if entry and entry.get("prob") is not None:
             kp, ku = entry["prob"], entry.get("url")
+    if kp is None and crypto_ref:
+        ck = _crypto_reach(s)
+        if ck:
+            entry = (crypto_ref.get(ck[0]) or {}).get(ck[1])
+            if entry and entry.get("prob") is not None:
+                kp, ku = entry["prob"], entry.get("url")
 
     div = None
     if kp is not None:
@@ -152,11 +184,20 @@ async def _build_intel(query: str, limit: int) -> list[MarketIntel]:
     if hit and now - hit[0] < _INTEL_TTL:
         return hit[1]
     snapshots = await client.search_markets(query=query, limit=limit)
-    is_wc = "world cup" in query.lower()
+    ql = query.lower()
+    is_wc = "world cup" in ql
+    is_crypto = any(k in ql for k in ("bitcoin", "ethereum", "btc", "eth", "crypto"))
     kalshi_team = await kalshi_client.get_winner_probs() if is_wc else {}
     kalshi_player = await kalshi_client.get_winner_probs(series=GOAL_LEADER_SERIES) if is_wc else {}
     player_index = _build_player_index(snapshots) if is_wc else {}
-    intel = [_intel(s, kalshi_team, kalshi_player, player_index) for s in snapshots]
+    crypto_ref = None
+    if is_crypto:
+        btc, eth = await asyncio.gather(
+            kalshi_client.get_reach_probs(BTC_REACH_SERIES),
+            kalshi_client.get_reach_probs(ETH_REACH_SERIES),
+        )
+        crypto_ref = {"BTC": btc, "ETH": eth}
+    intel = [_intel(s, kalshi_team, kalshi_player, player_index, crypto_ref) for s in snapshots]
     _INTEL_CACHE[key] = (now, intel)
     return intel
 

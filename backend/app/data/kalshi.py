@@ -26,6 +26,12 @@ ASSISTS_SERIES = "KXWCAST"
 GOAL_SERIES = "KXWCGOAL"   # per-match "scores N+ goals" (1+ = to-score)
 SOA_SERIES = "KXWCSOA"     # per-match "goal or assist"
 
+# Crypto "how high will it get this year?" — one market per strike ("Above $X", floor_strike set,
+# close = year end). P(yearly high >= X) == P(reach X by year end), which is exactly Polymarket's
+# "Will {asset} reach $X by December 31?" — a clean, same-question cross-venue pair.
+BTC_REACH_SERIES = "KXBTCMAXY"
+ETH_REACH_SERIES = "KXETHMAXY"
+
 # Per-series process cache so a Kalshi blip never empties the board (last-known-good).
 _CACHE: dict = {}  # series -> {"ts": float, "probs": dict}
 _CACHE_TTL_S = 30.0
@@ -94,6 +100,32 @@ class KalshiClient:
             if not name or prob is None:
                 continue
             out[normalize_team(name)] = {"prob": round(prob, 4), "ticker": m.get("ticker"), "url": _kalshi_url(series)}
+        _CACHE[series] = {"ts": now, "probs": out}
+        return out
+
+    async def get_reach_probs(self, series: str) -> dict[int, dict]:
+        """threshold(int) -> {prob, ticker, url} for a 'how high this year' series.
+
+        Only the 'Above $X' legs (floor_strike set, no cap) are used — each one's price is
+        P(asset's yearly high >= X) = P(reach X by year end). Strikes are quoted a cent under
+        the round number ($99,999.99), so we round to the clean threshold (100000) for matching.
+        Cached; last-known-good on failure."""
+        now = time.time()
+        cached = _CACHE.get(series)
+        if cached and cached["probs"] and now - cached["ts"] < _CACHE_TTL_S:
+            return cached["probs"]
+        markets = await self._fetch_markets(series)
+        if not markets:
+            return cached["probs"] if cached else {}
+        out: dict[int, dict] = {}
+        for m in markets:
+            floor = _to_float(m.get("floor_strike"))
+            cap = _to_float(m.get("cap_strike"))
+            prob = _mid(m)
+            if floor is None or cap is not None or prob is None:
+                continue  # keep only the open-ended 'Above $X' legs
+            thr = int(round(floor))  # 99999.99 -> 100000
+            out[thr] = {"prob": round(prob, 4), "ticker": m.get("ticker"), "url": _kalshi_url(series)}
         _CACHE[series] = {"ts": now, "probs": out}
         return out
 
