@@ -32,8 +32,9 @@ const C = {
 
 export const FPS = 30;
 // Scene durations in frames (30fps). Sum drives TOTAL_FRAMES.
-const DUR = [240, 270, 270, 270, 270, 270, 270, 270, 540, 270];
-export const TOTAL_FRAMES = DUR.reduce((a, b) => a + b, 0); // 2940 = 98s
+// Scaled to match the 102.3s voice-over (Declan Sage read) so each scene lands on its narration.
+const DUR = [249, 282, 282, 282, 282, 282, 282, 282, 564, 282];
+export const TOTAL_FRAMES = DUR.reduce((a, b) => a + b, 0); // 3069 = 102.3s (= VO length)
 
 /* ------------------------------------------------------------- utilities */
 const fade = (frame: number, dur: number, hold = 18) =>
