@@ -19,7 +19,7 @@ from app.config import settings
 from app.data.polymarket import PolymarketClient
 from app.data.kalshi import (
     KalshiClient, normalize_team, GOAL_LEADER_SERIES, ASSISTS_SERIES, GOAL_SERIES, SOA_SERIES,
-    BTC_REACH_SERIES, ETH_REACH_SERIES,
+    BTC_REACH_SERIES, ETH_REACH_SERIES, BTC_DIP_SERIES, ETH_DIP_SERIES,
 )
 from app.data.players import country_for
 from app.data import wiki, gdelt, calendar
@@ -75,17 +75,25 @@ def _build_player_index(snapshots: list[MarketSnapshot]) -> dict:
     return idx
 
 
-# Cross-venue crypto match: Polymarket "Will {asset} reach $X by December 31, 2026?" is the same
-# question as Kalshi's "how high this year — Above $X". We only pair the UP/reach side, for 2026,
-# with a parseable dollar threshold — so a gap is always like-for-like (never dip-vs-reach, etc.).
+# Cross-venue crypto match: Polymarket "Will {asset} reach/dip to $X by December 31, 2026?" is the
+# same question as Kalshi's "how high/low this year — Above/Below $X". We only pair a parseable
+# dollar threshold for 2026 with the matching direction — so a gap is always like-for-like
+# (reach<->above, dip<->below; never reach-vs-below, never a different year).
 _CRYPTO_YEAR = "2026"
 
 
-def _crypto_reach(s: MarketSnapshot) -> tuple[str, int] | None:
-    """(asset, threshold) for a Polymarket 2026 'reach $X' crypto market, else None."""
+def _crypto_key(s: MarketSnapshot) -> tuple[str, int, str] | None:
+    """(asset, threshold, direction) for a Polymarket 2026 crypto price market, else None.
+    direction is 'up' (reach) or 'down' (dip)."""
     q = (s.question or "").lower()
-    if "reach" not in q or _CRYPTO_YEAR not in q:
-        return None  # excludes 'dip to' (down) and other years
+    if _CRYPTO_YEAR not in q:
+        return None
+    if "reach" in q:
+        direction = "up"
+    elif "dip" in q:
+        direction = "down"
+    else:
+        return None
     if "bitcoin" in q:
         asset = "BTC"
     elif "ethereum" in q:
@@ -95,7 +103,7 @@ def _crypto_reach(s: MarketSnapshot) -> tuple[str, int] | None:
     m = re.search(r"\$([\d,]+)", q)
     if not m:
         return None
-    return asset, int(m.group(1).replace(",", ""))
+    return asset, int(m.group(1).replace(",", "")), direction
 
 
 def _intel(s: MarketSnapshot, kalshi_team: dict | None = None,
@@ -125,9 +133,10 @@ def _intel(s: MarketSnapshot, kalshi_team: dict | None = None,
         if entry and entry.get("prob") is not None:
             kp, ku = entry["prob"], entry.get("url")
     if kp is None and crypto_ref:
-        ck = _crypto_reach(s)
+        ck = _crypto_key(s)
         if ck:
-            entry = (crypto_ref.get(ck[0]) or {}).get(ck[1])
+            asset, thr, direction = ck
+            entry = ((crypto_ref.get(asset) or {}).get(direction) or {}).get(thr)
             if entry and entry.get("prob") is not None:
                 kp, ku = entry["prob"], entry.get("url")
 
@@ -192,11 +201,13 @@ async def _build_intel(query: str, limit: int) -> list[MarketIntel]:
     player_index = _build_player_index(snapshots) if is_wc else {}
     crypto_ref = None
     if is_crypto:
-        btc, eth = await asyncio.gather(
+        btc_up, eth_up, btc_dn, eth_dn = await asyncio.gather(
             kalshi_client.get_reach_probs(BTC_REACH_SERIES),
             kalshi_client.get_reach_probs(ETH_REACH_SERIES),
+            kalshi_client.get_dip_probs(BTC_DIP_SERIES),
+            kalshi_client.get_dip_probs(ETH_DIP_SERIES),
         )
-        crypto_ref = {"BTC": btc, "ETH": eth}
+        crypto_ref = {"BTC": {"up": btc_up, "down": btc_dn}, "ETH": {"up": eth_up, "down": eth_dn}}
     intel = [_intel(s, kalshi_team, kalshi_player, player_index, crypto_ref) for s in snapshots]
     _INTEL_CACHE[key] = (now, intel)
     return intel

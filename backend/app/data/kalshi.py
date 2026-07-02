@@ -26,11 +26,14 @@ ASSISTS_SERIES = "KXWCAST"
 GOAL_SERIES = "KXWCGOAL"   # per-match "scores N+ goals" (1+ = to-score)
 SOA_SERIES = "KXWCSOA"     # per-match "goal or assist"
 
-# Crypto "how high will it get this year?" — one market per strike ("Above $X", floor_strike set,
-# close = year end). P(yearly high >= X) == P(reach X by year end), which is exactly Polymarket's
-# "Will {asset} reach $X by December 31?" — a clean, same-question cross-venue pair.
+# Crypto "how high/low will it get this year?" — one market per strike, close = year end.
+#   MAXY "Above $X"  → P(yearly high >= X) == P(reach X by year end)   == Polymarket "reach $X"
+#   MINY "Below $X"  → P(yearly low  <= X) == P(dip to X by year end)  == Polymarket "dip to $X"
+# Both are clean, same-question cross-venue pairs.
 BTC_REACH_SERIES = "KXBTCMAXY"
 ETH_REACH_SERIES = "KXETHMAXY"
+BTC_DIP_SERIES = "KXBTCMINY"
+ETH_DIP_SERIES = "KXETHMINY"
 
 # Per-series process cache so a Kalshi blip never empties the board (last-known-good).
 _CACHE: dict = {}  # series -> {"ts": float, "probs": dict}
@@ -103,15 +106,16 @@ class KalshiClient:
         _CACHE[series] = {"ts": now, "probs": out}
         return out
 
-    async def get_reach_probs(self, series: str) -> dict[int, dict]:
-        """threshold(int) -> {prob, ticker, url} for a 'how high this year' series.
+    async def _strike_probs(self, series: str, side: str) -> dict[int, dict]:
+        """threshold(int) -> {prob, ticker, url} for a per-strike 'how high/low this year' series.
 
-        Only the 'Above $X' legs (floor_strike set, no cap) are used — each one's price is
-        P(asset's yearly high >= X) = P(reach X by year end). Strikes are quoted a cent under
-        the round number ($99,999.99), so we round to the clean threshold (100000) for matching.
-        Cached; last-known-good on failure."""
+        side='above' keeps the open-ended 'Above $X' legs (floor set, no cap) = P(high >= X);
+        side='below' keeps the 'Below $X' legs (cap set, no floor) = P(low <= X). Strikes are
+        quoted a cent off the round number ($99,999.99), so we round to the clean threshold.
+        Cached (per series+side); last-known-good on failure."""
+        ckey = f"{series}|{side}"
         now = time.time()
-        cached = _CACHE.get(series)
+        cached = _CACHE.get(ckey)
         if cached and cached["probs"] and now - cached["ts"] < _CACHE_TTL_S:
             return cached["probs"]
         markets = await self._fetch_markets(series)
@@ -122,12 +126,27 @@ class KalshiClient:
             floor = _to_float(m.get("floor_strike"))
             cap = _to_float(m.get("cap_strike"))
             prob = _mid(m)
-            if floor is None or cap is not None or prob is None:
-                continue  # keep only the open-ended 'Above $X' legs
-            thr = int(round(floor))  # 99999.99 -> 100000
+            if prob is None:
+                continue
+            if side == "above":
+                if floor is None or cap is not None:
+                    continue
+                thr = int(round(floor))  # 99999.99 -> 100000
+            else:  # below
+                if cap is None or floor is not None:
+                    continue
+                thr = int(round(cap))
             out[thr] = {"prob": round(prob, 4), "ticker": m.get("ticker"), "url": _kalshi_url(series)}
-        _CACHE[series] = {"ts": now, "probs": out}
+        _CACHE[ckey] = {"ts": now, "probs": out}
         return out
+
+    async def get_reach_probs(self, series: str) -> dict[int, dict]:
+        """P(reach X by year end) per strike — the 'Above $X' legs."""
+        return await self._strike_probs(series, "above")
+
+    async def get_dip_probs(self, series: str) -> dict[int, dict]:
+        """P(dip to X by year end) per strike — the 'Below $X' legs."""
+        return await self._strike_probs(series, "below")
 
     async def get_threshold_probs(self, series: str) -> dict[str, dict]:
         """normalized player -> {prob, threshold, url} for 'Player: N+' per-match series
