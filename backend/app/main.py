@@ -265,6 +265,27 @@ async def list_dislocations(
     return flagged
 
 
+# Categories swept when /api/divergences is called without an explicit query — the live universes
+# that currently have a cross-venue (Polymarket <-> Kalshi) counterpart.
+_DIVERGENCE_QUERIES = ["World Cup", "Fed", "Bitcoin", "Ethereum"]
+
+
+@app.get("/api/divergences", response_model=list[MarketIntel])
+async def list_divergences(
+    query: str | None = Query(None, description="One universe (e.g. Bitcoin). Omit to sweep all."),
+    limit_per: int = Query(60, ge=1, le=200),
+    top: int = Query(40, ge=1, le=200),
+):
+    """Cross-venue dislocations only: markets where the same question is priced on both
+    Polymarket and Kalshi, ranked by the size of the gap (percentage points). Every row is a
+    verified like-for-like pair (same team/threshold/meeting/outcome) — intel only, never a pick."""
+    queries = [query] if query else _DIVERGENCE_QUERIES
+    lists = await asyncio.gather(*[_build_intel(q, limit_per) for q in queries])
+    rows = [m for lst in lists for m in lst if m.divergence is not None]
+    rows.sort(key=lambda m: abs(m.divergence.gap_pp) if m.divergence else 0.0, reverse=True)
+    return rows[:top]
+
+
 @app.get("/api/calendar")
 async def market_calendar(
     category: str | None = Query(None, description="Filter to one category, e.g. Macro / Politics"),
