@@ -21,6 +21,8 @@ interface Props {
   entity: SportsEntity;
   open: boolean;
   onClose: () => void;
+  premium?: boolean;
+  onUnlocked?: () => void;
 }
 
 // Lightweight canvas "digital rain" backdrop.
@@ -62,10 +64,7 @@ function MatrixRain() {
   return <canvas ref={ref} className="absolute inset-0 w-full h-full opacity-20 pointer-events-none" />;
 }
 
-export default function DeliberationRoom({ entity, open, onClose }: Props) {
-  const [premium, setPremium] = useState<boolean>(
-    typeof localStorage !== "undefined" && localStorage.getItem("tickrr_premium") === "1"
-  );
+export default function DeliberationRoom({ entity, open, onClose, premium = false, onUnlocked }: Props) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -90,7 +89,7 @@ export default function DeliberationRoom({ entity, open, onClose }: Props) {
 
   const activate = async () => {
     const unlocked = await goPro("pro");  // redirects to Stripe, or unlocks in demo mode
-    if (unlocked) setPremium(true);
+    if (unlocked) onUnlocked?.();
   };
 
   const send = async (e: FormEvent) => {

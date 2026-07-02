@@ -19,6 +19,7 @@ import PlayerDossier from "./components/PlayerDossier";
 import Home from "./components/Home";
 import GrowthConsole from "./components/GrowthConsole";
 import ThemeToggle from "./components/ThemeToggle";
+import UpgradeModal from "./components/UpgradeModal";
 import { isPremium, setPremium, goPro } from "./lib/premium";
 import { Globe, RefreshCw, Layers, Lock, Rocket } from "lucide-react";
 
@@ -28,6 +29,7 @@ export default function App() {
   const [sportFilter, setSportFilter] = useState<string | null>(null);
   const [delibOpen, setDelibOpen] = useState(false);
   const [growthOpen, setGrowthOpen] = useState(false);
+  const [paywallOpen, setPaywallOpen] = useState(false);
   const [entered, setEntered] = useState(false);
   const [pro, setPro] = useState(isPremium());
 
@@ -64,6 +66,12 @@ export default function App() {
   const handleGoPro = async (plan: string) => {
     const unlocked = await goPro(plan);  // redirects to Stripe, or unlocks in demo mode
     if (unlocked) { setPro(true); enterTerminal(); }
+  };
+
+  // In-terminal upgrade (from the paywall modal): unlock without leaving the terminal.
+  const handleUpgrade = async (plan: string) => {
+    const unlocked = await goPro(plan);
+    if (unlocked) { setPro(true); setPaywallOpen(false); }
   };
 
   // Dynamic athlete/team provisioner for on-the-fly terminal listing!
@@ -213,7 +221,7 @@ export default function App() {
 
           {/* AI-Powered Intel Intelligence & Custom Query Station */}
           <div className="h-[420px]">
-            <IntelligencePanel entity={activeEntity} />
+            <IntelligencePanel entity={activeEntity} premium={pro} onUpgrade={() => setPaywallOpen(true)} />
           </div>
         </div>
       </main>
@@ -240,8 +248,9 @@ export default function App() {
         </div>
       </footer>
 
-      <DeliberationRoom entity={activeEntity} open={delibOpen} onClose={() => setDelibOpen(false)} />
+      <DeliberationRoom entity={activeEntity} open={delibOpen} onClose={() => setDelibOpen(false)} premium={pro} onUnlocked={() => setPro(true)} />
       <GrowthConsole open={growthOpen} onClose={() => setGrowthOpen(false)} />
+      <UpgradeModal open={paywallOpen} onClose={() => setPaywallOpen(false)} onSelect={handleUpgrade} />
     </div>
   );
 }

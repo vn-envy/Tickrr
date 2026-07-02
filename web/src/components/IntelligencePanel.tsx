@@ -5,10 +5,12 @@
 
 import { useState, useEffect, useRef, FormEvent } from "react";
 import { SportsEntity, InsightReport } from "../types";
-import { Cpu, ChevronRight, FileText, BarChart3, Coins, Sparkles, Send } from "lucide-react";
+import { Cpu, ChevronRight, FileText, BarChart3, Coins, Sparkles, Send, Lock } from "lucide-react";
 
 interface IntelligencePanelProps {
   entity: SportsEntity;
+  premium?: boolean;
+  onUpgrade?: () => void;
 }
 
 type TabType = "report" | "metrics" | "valuation" | "advisory";
@@ -29,7 +31,7 @@ function marketBody(entity: SportsEntity, extra: Record<string, unknown> = {}) {
   };
 }
 
-export default function IntelligencePanel({ entity }: IntelligencePanelProps) {
+export default function IntelligencePanel({ entity, premium = false, onUpgrade }: IntelligencePanelProps) {
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [activeTab, setActiveTab] = useState<TabType>("report");
@@ -109,8 +111,9 @@ export default function IntelligencePanel({ entity }: IntelligencePanelProps) {
     ]);
   }, [entity]);
 
-  // Deep, Google-Search-grounded analysis from the Gemini-backed server.
+  // Deep, Google-Search-grounded analysis from the Gemini-backed server. (Pro-gated.)
   const handleExecuteAnalysis = async () => {
+    if (!premium) { onUpgrade?.(); return; }
     setLoading(true);
     try {
       const response = await fetch("/api/insights", {
@@ -134,6 +137,7 @@ export default function IntelligencePanel({ entity }: IntelligencePanelProps) {
   // Custom advisory question, answered with the same market context.
   const handleSubmitQuestion = async (e: FormEvent) => {
     e.preventDefault();
+    if (!premium) { onUpgrade?.(); return; }
     const cleanQuery = customQuestion.trim();
     if (!cleanQuery) return;
 
@@ -198,10 +202,11 @@ export default function IntelligencePanel({ entity }: IntelligencePanelProps) {
         <button
           onClick={handleExecuteAnalysis}
           type="button"
+          title={premium ? "Run live Google-Search-grounded analysis" : "Pro feature — unlock live Gemini analysis"}
           className="cursor-pointer bg-[#00FF66] hover:bg-[#00FF66]/90 text-black font-mono text-[10px] font-black px-3 py-1 rounded transition duration-150 flex items-center gap-1.5 self-start sm:self-auto shadow-md"
         >
-          <Sparkles className="w-3.5 h-3.5" />
-          RUN GEMINI MARKET ANALYSIS
+          {premium ? <Sparkles className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+          {premium ? "RUN GEMINI MARKET ANALYSIS" : "GEMINI DEEP ANALYSIS · PRO"}
         </button>
       </div>
 
@@ -360,8 +365,23 @@ export default function IntelligencePanel({ entity }: IntelligencePanelProps) {
               </div>
             )}
 
-            {/* Tab: Advisory */}
-            {activeTab === "advisory" && (
+            {/* Tab: Advisory (Pro-gated) */}
+            {activeTab === "advisory" && !premium && (
+              <div className="flex flex-col items-center justify-center h-[280px] border border-[#2D333B] rounded bg-[#050608] text-center px-6 gap-3 animate-fade-in">
+                <Lock className="w-8 h-8 text-[#00FF66] terminal-glow-green" />
+                <div className="text-[#00FF66] text-[11px] font-bold tracking-widest font-mono">ASK-ANYTHING ADVISORY · PRO</div>
+                <p className="text-[#D1D4DC]/50 text-[10px] font-sans max-w-xs leading-relaxed">
+                  Ask the Tickrr intel engine anything about this market — answered live by Gemini + Google Search. Facts only, never advice.
+                </p>
+                <button
+                  onClick={onUpgrade}
+                  className="cursor-pointer bg-[#00FF66] hover:bg-[#00FF66]/90 text-black font-black text-[10px] px-4 py-1.5 rounded tracking-wider transition font-mono terminal-glow-green"
+                >
+                  UNLOCK PRO — $19/MO
+                </button>
+              </div>
+            )}
+            {activeTab === "advisory" && premium && (
               <div className="flex flex-col h-[280px] border border-[#2D333B] rounded bg-[#050608] overflow-hidden animate-fade-in font-mono text-[11px]">
                 <div className="flex-1 overflow-auto p-2.5 space-y-2.5">
                   {advisoryChat.map((chat, i) => (

@@ -29,16 +29,25 @@ const FEATURES = [
 
 const PLANS = [
   {
-    id: "free", name: "Free", price: "$0", cadence: "forever", cta: "Launch Terminal", highlight: false,
-    perks: ["Live terminal access", "Dislocation Radar", "Market + player tickers", "Fair value & price history"],
+    id: "free", name: "Free", price: "$0", cadence: "forever", highlight: false,
+    hook: "See the board.", cta: "Launch free terminal", note: "No card required",
+    perks: ["Full live terminal + Dislocation Radar", "Market & player tickers", "Fair value + real price history", "Instant baseline market reads"],
   },
   {
-    id: "pro", name: "Pro", price: "$19", cadence: "/ month", cta: "Go Pro", highlight: true,
-    perks: ["Everything in Free", "Deliberation Room (AI experts)", "Live buzz + news signals", "Cross-venue gap alerts", "Priority data refresh"],
+    id: "pro", name: "Pro", price: "$19", cadence: "/ month", highlight: true,
+    hook: "Get the edge.", cta: "Unlock Pro", note: "Less than one mispriced bet",
+    perks: [
+      "Everything in Free",
+      "Deliberation Room — 2 AI experts debate your call",
+      "Live Gemini analysis, grounded by Google Search",
+      "Ask-anything advisory + cross-venue gap alerts",
+      "Priority data refresh",
+    ],
   },
   {
-    id: "founder", name: "Founder's Pass", price: "$99", cadence: "once · lifetime", cta: "Get Founder's Pass", highlight: false,
-    perks: ["Everything in Pro — forever", "Founding-member badge", "Locks in launch pricing", "Shape the roadmap"],
+    id: "founder", name: "Founder's Pass", price: "$99", cadence: "once · lifetime", highlight: false,
+    hook: "Own it forever.", cta: "Become a Founder", note: "One-time — never pay again",
+    perks: ["Everything in Pro — for life", "≈5 months of Pro, paid once", "Founding-member badge", "Locked launch pricing + roadmap input"],
   },
 ];
 
@@ -152,6 +161,7 @@ export default function Home({ onEnter, onGoPro, premium }: Props) {
                 <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-mono font-black bg-[#00FF66] text-black px-2.5 py-0.5 rounded shadow-[0_0_12px_rgba(0,255,102,0.4)]">MOST POPULAR</span>
               )}
               <h3 className="font-sans font-bold text-white text-lg">{p.name}</h3>
+              <div className="text-[#FF9900] font-mono text-[11px] font-bold mt-0.5">{p.hook}</div>
               <div className="mt-2 mb-5 flex items-end gap-1.5">
                 <span className="font-sans font-black text-4xl text-white leading-none">{p.price}</span>
                 <span className="text-[#D1D4DC]/40 font-mono text-[11px] mb-1">{p.cadence}</span>
@@ -178,6 +188,7 @@ export default function Home({ onEnter, onGoPro, premium }: Props) {
                   <>{p.cta} <ArrowRight className="w-3.5 h-3.5" /></>
                 )}
               </button>
+              <p className="text-center text-[9px] text-[#D1D4DC]/40 font-mono mt-2">{p.note}</p>
             </div>
           ))}
         </div>
