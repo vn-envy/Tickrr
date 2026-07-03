@@ -15,6 +15,7 @@ FIRESTORE_LOCATION="${FIRESTORE_LOCATION:-nam5}"  # US multi-region (use eur3 fo
 GEMINI_API_KEY="${GEMINI_API_KEY:-}"
 STRIPE_SECRET_KEY="${STRIPE_SECRET_KEY:-}"
 GROWTH_CRON_SECRET="${GROWTH_CRON_SECRET:-}"
+SEO_CRON_SECRET="${SEO_CRON_SECRET:-}"       # guards /api/seo/cron; falls back to GROWTH_CRON_SECRET
 GROWTH_NOTIFY_WEBHOOK="${GROWTH_NOTIFY_WEBHOOK:-}"
 DISCORD_WEBHOOK_URL="${DISCORD_WEBHOOK_URL:-}"
 BLUESKY_HANDLE="${BLUESKY_HANDLE:-}"
@@ -49,7 +50,7 @@ echo "    API_URL=$API_URL"
 echo "==> Deploying tickrr-web (frontend + server)"
 gcloud run deploy tickrr-web --source web --region "$REGION" --allow-unauthenticated \
   --min-instances 1 --memory 1Gi --quiet \
-  --set-env-vars "GROWTH_STORE=firestore,MARKET_API=${API_URL},GEMINI_API_KEY=${GEMINI_API_KEY},STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY},GROWTH_CRON_SECRET=${GROWTH_CRON_SECRET},GROWTH_NOTIFY_WEBHOOK=${GROWTH_NOTIFY_WEBHOOK},DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL},BLUESKY_HANDLE=${BLUESKY_HANDLE},BLUESKY_APP_PASSWORD=${BLUESKY_APP_PASSWORD},BUFFER_ACCESS_TOKEN=${BUFFER_ACCESS_TOKEN}"
+  --set-env-vars "GROWTH_STORE=firestore,MARKET_API=${API_URL},GEMINI_API_KEY=${GEMINI_API_KEY},STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY},GROWTH_CRON_SECRET=${GROWTH_CRON_SECRET},SEO_CRON_SECRET=${SEO_CRON_SECRET},GROWTH_NOTIFY_WEBHOOK=${GROWTH_NOTIFY_WEBHOOK},DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL},BLUESKY_HANDLE=${BLUESKY_HANDLE},BLUESKY_APP_PASSWORD=${BLUESKY_APP_PASSWORD},BUFFER_ACCESS_TOKEN=${BUFFER_ACCESS_TOKEN}"
 WEB_URL=$(gcloud run services describe tickrr-web --region "$REGION" --format='value(status.url)')
 
 # Point Stripe redirects at the real URL.
@@ -97,6 +98,24 @@ if [ -n "$GROWTH_CRON_SECRET" ]; then
   fi
 else
   echo "==> GROWTH_CRON_SECRET unset — skipping scheduler (set it to enable autonomous drafting)"
+fi
+
+# Daily AI SEO post (the AI SEO editor writes an answer-first, intel-only post from live signals).
+# Uses SEO_CRON_SECRET if set, else the shared GROWTH_CRON_SECRET (server accepts either).
+SEO_KEY="${SEO_CRON_SECRET:-$GROWTH_CRON_SECRET}"
+if [ -n "$SEO_KEY" ]; then
+  echo "==> Scheduling daily AI SEO post (1pm ET)"
+  if gcloud scheduler jobs describe tickrr-seo --location "$REGION" >/dev/null 2>&1; then
+    gcloud scheduler jobs update http tickrr-seo --location "$REGION" \
+      --uri "${WEB_URL}/api/seo/cron" --http-method POST \
+      --update-headers "x-cron-key=${SEO_KEY}" --schedule "0 13 * * *" --time-zone "America/New_York" --quiet
+  else
+    gcloud scheduler jobs create http tickrr-seo --location "$REGION" \
+      --uri "${WEB_URL}/api/seo/cron" --http-method POST \
+      --headers "x-cron-key=${SEO_KEY}" --schedule "0 13 * * *" --time-zone "America/New_York" --quiet
+  fi
+else
+  echo "==> No cron secret set — skipping SEO scheduler"
 fi
 
 echo ""
