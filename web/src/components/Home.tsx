@@ -231,6 +231,7 @@ export default function Home({ onEnter, onGoPro, premium }: Props) {
           <a href="/blog" className="hover:text-[#00FF66] transition">Blog</a>
           <a href="/faq" className="hover:text-[#00FF66] transition">FAQ</a>
           <a href="/compliance" className="hover:text-[#00FF66] transition">Compliance</a>
+          <a href="mailto:support4u@tickrr.tech" className="hover:text-[#00FF66] transition">Support</a>
         </div>
         <span className="text-center sm:text-right max-w-xl">
           Tickrr provides informational market analytics only. Not financial, investment, or betting advice;

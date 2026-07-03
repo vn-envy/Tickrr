@@ -10,8 +10,10 @@ export const SITE = {
   name: "Tickrr",
   company: "Ticker Labs",
   tagline: "The Bloomberg Terminal for prediction markets",
-  // Public origin, used for canonical URLs + sitemap. Override per-deploy with APP_URL.
-  url: (process.env.APP_URL || "http://localhost:3000").replace(/\/+$/, ""),
+  // Public origin, used for canonical URLs + sitemap. Defaults to the live domain; override
+  // per-deploy with APP_URL (e.g. to a *.run.app URL) if needed.
+  url: (process.env.APP_URL || "https://tickrr.tech").replace(/\/+$/, ""),
+  email: "support4u@tickrr.tech",
   description:
     "Real-time trading analytics for prediction markets — sports, politics, macro & crypto. " +
     "Fair value, dislocations, cross-venue gaps (Polymarket vs Kalshi), catalysts, and AI intel. " +
@@ -110,7 +112,7 @@ export const COMPLIANCE: { updated: string; sections: ComplianceSection[] } = {
     },
     {
       h: "Contact",
-      p: "Questions about this notice? Contact Ticker Labs at hello@tickrr.app.",
+      p: "Questions about this notice, or a data/removal request? Contact Ticker Labs at support4u@tickrr.tech.",
     },
   ],
 };

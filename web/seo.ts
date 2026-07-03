@@ -22,6 +22,10 @@ const inline = (s: string): string =>
 
 const ie = (s: string): string => inline(esc(s));
 
+// Turn a bare email address (in already-escaped text) into a mailto link.
+const linkifyEmail = (s: string): string =>
+  s.replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="mailto:$1">$1</a>');
+
 /** Minimal, safe markdown → HTML (h2/h3, blockquote, unordered lists, paragraphs, inline). */
 export function mdToHtml(md: string): string {
   const out: string[] = [];
@@ -146,7 +150,7 @@ ${lds}
 </nav></div></header>
 <main><div class="wrap">${o.bodyHtml}</div></main>
 <footer><div class="wrap">
-<div class="row"><a href="/">Terminal</a><a href="/blog">Blog</a><a href="/faq">FAQ</a><a href="/compliance">Compliance</a><a href="/sitemap.xml">Sitemap</a></div>
+<div class="row"><a href="/">Terminal</a><a href="/blog">Blog</a><a href="/faq">FAQ</a><a href="/compliance">Compliance</a><a href="mailto:${SITE.email}">Support</a><a href="/sitemap.xml">Sitemap</a></div>
 <div>${esc(SITE.name)} by ${esc(SITE.company)} · Data: Polymarket + Kalshi (derived) · Grounded by Gemini · <span class="intel">Intel only, never picks.</span> Not financial or betting advice.</div>
 </div></footer>
 </body></html>`;
@@ -163,7 +167,7 @@ ${items}
 }
 
 export function renderCompliancePage(): string {
-  const secs = COMPLIANCE.sections.map((s) => `<h2>${esc(s.h)}</h2><p>${esc(s.p)}</p>`).join("");
+  const secs = COMPLIANCE.sections.map((s) => `<h2>${esc(s.h)}</h2><p>${linkifyEmail(esc(s.p))}</p>`).join("");
   const body = `<span class="eyebrow">Compliance</span>
 <h1>Compliance &amp; responsible use</h1>
 <p class="meta">Last updated ${esc(COMPLIANCE.updated)}</p>

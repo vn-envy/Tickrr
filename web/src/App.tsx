@@ -291,6 +291,7 @@ export default function App() {
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 sm:text-right justify-end">
           <a href="/faq" className="hover:text-[#00FF66] transition">FAQ</a>
           <a href="/compliance" className="hover:text-[#00FF66] transition">Compliance</a>
+          <a href="mailto:support4u@tickrr.tech" className="hover:text-[#00FF66] transition">Support</a>
           <span className="text-[#FF9900] font-bold">INTEL ONLY · NEVER PICKS</span>
         </div>
       </footer>

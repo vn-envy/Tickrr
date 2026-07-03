@@ -16,6 +16,7 @@ GEMINI_API_KEY="${GEMINI_API_KEY:-}"
 STRIPE_SECRET_KEY="${STRIPE_SECRET_KEY:-}"
 GROWTH_CRON_SECRET="${GROWTH_CRON_SECRET:-}"
 SEO_CRON_SECRET="${SEO_CRON_SECRET:-}"       # guards /api/seo/cron; falls back to GROWTH_CRON_SECRET
+APP_URL="${APP_URL:-}"                        # public site origin (e.g. https://tickrr.tech); defaults to the Cloud Run URL
 GROWTH_NOTIFY_WEBHOOK="${GROWTH_NOTIFY_WEBHOOK:-}"
 DISCORD_WEBHOOK_URL="${DISCORD_WEBHOOK_URL:-}"
 BLUESKY_HANDLE="${BLUESKY_HANDLE:-}"
@@ -53,10 +54,13 @@ gcloud run deploy tickrr-web --source web --region "$REGION" --allow-unauthentic
   --set-env-vars "GROWTH_STORE=firestore,MARKET_API=${API_URL},GEMINI_API_KEY=${GEMINI_API_KEY},STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY},GROWTH_CRON_SECRET=${GROWTH_CRON_SECRET},SEO_CRON_SECRET=${SEO_CRON_SECRET},GROWTH_NOTIFY_WEBHOOK=${GROWTH_NOTIFY_WEBHOOK},DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL},BLUESKY_HANDLE=${BLUESKY_HANDLE},BLUESKY_APP_PASSWORD=${BLUESKY_APP_PASSWORD},BUFFER_ACCESS_TOKEN=${BUFFER_ACCESS_TOKEN}"
 WEB_URL=$(gcloud run services describe tickrr-web --region "$REGION" --format='value(status.url)')
 
-# Point Stripe redirects at the real URL.
+# Canonical site origin — drives SEO canonicals/sitemap/llms + Stripe redirects. Use the custom
+# domain if the operator exported APP_URL (e.g. https://tickrr.tech); else the Cloud Run URL.
+SITE_URL="${APP_URL:-$WEB_URL}"
 gcloud run services update tickrr-web --region "$REGION" --quiet \
-  --update-env-vars "APP_URL=${WEB_URL}" >/dev/null
+  --update-env-vars "APP_URL=${SITE_URL}" >/dev/null
 echo "    WEB_URL=$WEB_URL"
+echo "    APP_URL=$SITE_URL"
 
 # BUFFER_CHANNEL_IDS is comma-separated — set it with a custom delimiter (^:^) so gcloud
 # doesn't read the commas as separate env vars.
