@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { SportsEntity } from "../types";
 import { getFavorites, toggleFavorite, onFavoritesChange } from "../lib/watchlist";
 import { Search, Trophy, Users, Star } from "lucide-react";
+import InfoTip from "./InfoTip";
 
 interface MarketWatchProps {
   entities: SportsEntity[];
@@ -37,6 +38,8 @@ export default function MarketWatch({
 
   // Distinct event universes present, for the segmentation chips.
   const leagues = Array.from(new Set(entities.map((e) => e.league).filter(Boolean))) as string[];
+  // The player/team split only means something when athlete markets are present (World Cup, etc.).
+  const hasAthletes = entities.some((e) => e.category === "athlete");
 
   const chip = (v: string) =>
     `cursor-pointer px-2 py-0.5 rounded border transition ${
@@ -82,7 +85,8 @@ export default function MarketWatch({
 
       {/* Directory Filters & Search */}
       <div className="p-2 border-b border-[#2D333B] bg-[#0B0E11]/30 flex flex-col sm:flex-row gap-2">
-        {/* Category Tabs */}
+        {/* Category Tabs — shown only when the player/team split is meaningful (athlete markets present) */}
+        {hasAthletes && (
         <div className="flex bg-[#1C2128] p-0.5 border border-[#2D333B] rounded font-mono text-[10px]">
           <button
             onClick={() => setCategoryFilter("all")}
@@ -117,6 +121,7 @@ export default function MarketWatch({
             TEAMS
           </button>
         </div>
+        )}
 
         {/* Directory-specific Search */}
         <div className="relative flex-1">
@@ -158,10 +163,10 @@ export default function MarketWatch({
             <tr className="bg-[#050608]/90 border-b border-[#2D333B] font-mono text-[10px] text-[#D1D4DC]/40 tracking-wider sticky top-0 select-none">
               <th className="py-2.5 px-3 font-semibold">TICKER / NAME</th>
               <th className="py-2.5 px-2 font-semibold hidden sm:table-cell">MARKET</th>
-              <th className="py-2.5 px-2 font-semibold text-right">IMPLIED %</th>
-              <th className="py-2.5 px-2 font-semibold text-right">1W &#916;</th>
-              <th className="py-2.5 px-2 font-semibold text-right hidden md:table-cell">LIQ</th>
-              <th className="py-2.5 px-3 font-semibold text-right hidden md:table-cell">QUALITY</th>
+              <th className="py-2.5 px-2 font-semibold"><InfoTip metric="impliedProb" className="justify-end w-full">IMPLIED %</InfoTip></th>
+              <th className="py-2.5 px-2 font-semibold"><InfoTip metric="change1w" className="justify-end w-full">1W &#916;</InfoTip></th>
+              <th className="py-2.5 px-2 font-semibold hidden md:table-cell"><InfoTip metric="liquidity" className="justify-end w-full">LIQ</InfoTip></th>
+              <th className="py-2.5 px-3 font-semibold hidden md:table-cell"><InfoTip metric="quality" className="justify-end w-full">QUALITY</InfoTip></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#2D333B]/40 font-mono text-xs">

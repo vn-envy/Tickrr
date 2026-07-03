@@ -6,6 +6,18 @@
 import { useState, useEffect, useRef, FormEvent } from "react";
 import { SportsEntity, InsightReport } from "../types";
 import { Cpu, ChevronRight, FileText, BarChart3, Coins, Sparkles, Send, Lock } from "lucide-react";
+import InfoTip from "./InfoTip";
+import { GLOSSARY } from "../lib/glossary";
+
+// Map a Gemini market-quality dimension name to its glossary entry (best-effort by keyword).
+function metricKey(name: string): keyof typeof GLOSSARY | undefined {
+  const n = name.toLowerCase();
+  if (n.includes("liquid")) return "liquidity";
+  if (n.includes("spread")) return "spread";
+  if (n.includes("moment")) return "momentum";
+  if (n.includes("consensus")) return "consensus";
+  return undefined;
+}
 
 interface IntelligencePanelProps {
   entity: SportsEntity;
@@ -266,6 +278,7 @@ export default function IntelligencePanel({ entity, premium = false, onUpgrade }
                   <div className="text-[#FF9900] font-bold mb-1.5 flex items-center gap-1 terminal-glow-orange">
                     <ChevronRight className="w-3.5 h-3.5 text-[#FF9900]" />
                     MARKET INTELLIGENCE SUMMARY
+                    <InfoTip metric="intelReport" />
                   </div>
                   <p className="text-[#D1D4DC] leading-relaxed font-sans whitespace-pre-line">{report.summary}</p>
                 </div>
@@ -314,7 +327,10 @@ export default function IntelligencePanel({ entity, premium = false, onUpgrade }
                 {report.metrics.map((metric, i) => (
                   <div key={i} className="bg-[#1C2128]/40 border border-[#2D333B] p-3 rounded">
                     <div className="flex justify-between items-center mb-1.5">
-                      <span className="text-white font-bold text-xs uppercase">{metric.name}</span>
+                      <span className="text-white font-bold text-xs uppercase flex items-center gap-1">
+                        {metric.name}
+                        {metricKey(metric.name) && <InfoTip metric={metricKey(metric.name)} />}
+                      </span>
                       <span className="text-[#FF9900] font-bold text-xs">{metric.score} / 100</span>
                     </div>
                     <div className="w-full h-1.5 bg-[#050608] border border-[#2D333B] rounded overflow-hidden mb-2">
@@ -336,6 +352,7 @@ export default function IntelligencePanel({ entity, premium = false, onUpgrade }
                   <div className="text-[#FF9900] font-bold mb-1.5 flex items-center gap-1.5">
                     <Coins className="w-4 h-4 text-[#FF9900]" />
                     FAIR-VALUE READ
+                    <InfoTip metric="fairRange" />
                   </div>
                   <p className="font-sans text-[11px] text-[#D1D4DC] leading-relaxed">{report.financialValuation}</p>
                 </div>

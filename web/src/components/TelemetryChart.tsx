@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { SportsEntity } from "../types";
 import { fetchHistory } from "../api";
 import { Activity, TrendingUp } from "lucide-react";
+import InfoTip from "./InfoTip";
 
 interface TelemetryChartProps {
   entity: SportsEntity;
@@ -96,6 +97,7 @@ export default function TelemetryChart({ entity }: TelemetryChartProps) {
           <h2 className="font-sans text-xs font-bold tracking-widest text-[#D1D4DC]">
             IMPLIED PROBABILITY: <span className="text-[#FF9900] terminal-glow-orange">{entity.ticker}</span>
           </h2>
+          <InfoTip metric="impliedProb" />
         </div>
         <div className="flex items-center gap-1.5 font-mono text-[10px]">
           <span className={`w-2 h-2 rounded-full ${live ? "bg-[#00FF66] led-blink" : "bg-[#FF9900]"}`} />
@@ -122,7 +124,7 @@ export default function TelemetryChart({ entity }: TelemetryChartProps) {
           </button>
         ))}
         <div className="ml-auto flex items-center gap-1.5 px-1 text-[#D1D4DC]/40">
-          <span className="font-sans">NET</span>
+          <InfoTip metric="net"><span className="font-sans">NET</span></InfoTip>
           <span className={netChange >= 0 ? "text-[#00FF66] font-bold" : "text-[#FF3B30] font-bold"}>
             {netChange >= 0 ? "+" : ""}{netChange.toFixed(2)}pp
           </span>

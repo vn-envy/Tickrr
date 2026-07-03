@@ -8,6 +8,7 @@
  */
 import { SportsEntity } from "../types";
 import { Radar, ExternalLink, Zap } from "lucide-react";
+import InfoTip from "./InfoTip";
 
 interface Props {
   entities: SportsEntity[];
@@ -52,7 +53,7 @@ export default function DislocationBoard({ entities, onSelect }: Props) {
         {/* Live signals row */}
         {flagged.length > 0 && (
           <div className="px-2 pt-2">
-            <div className="text-[9px] font-mono font-bold text-[#FF9900]/70 px-1 mb-1 tracking-wider">⚡ LIVE SIGNALS</div>
+            <div className="text-[9px] font-mono font-bold text-[#FF9900]/70 px-1 mb-1 tracking-wider"><InfoTip metric="liveSignals">⚡ LIVE SIGNALS</InfoTip></div>
             <div className="flex gap-2 overflow-x-auto pb-2">
               {flagged.map((e) => {
                 const d = e.dislocation!;
@@ -86,7 +87,7 @@ export default function DislocationBoard({ entities, onSelect }: Props) {
         {gaps.length > 0 && (
           <div className="px-2 pb-2 border-t border-[#2D333B]/50">
             <div className="text-[9px] font-mono font-bold text-[#D1D4DC]/50 px-1 my-1 tracking-wider">
-              ◇ CROSS-VENUE GAPS · POLYMARKET vs KALSHI
+              <InfoTip metric="crossVenue">◇ CROSS-VENUE GAPS · POLYMARKET vs KALSHI</InfoTip>
             </div>
             <div className="flex gap-2 overflow-x-auto pb-1">
               {gaps.map((e) => {

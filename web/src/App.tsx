@@ -26,7 +26,7 @@ import { isPremium, setPremium, goPro } from "./lib/premium";
 import { signInWithGoogle, signOutUser, subscribeAuth, AuthUser } from "./lib/auth";
 import { authEnabled } from "./lib/firebase";
 import { syncFavoritesFromCloud } from "./lib/watchlist";
-import { Globe, RefreshCw, Layers, Lock, Rocket, Star, LogIn } from "lucide-react";
+import { Globe, Lock, Rocket, Star, LogIn } from "lucide-react";
 
 export default function App() {
   const [entities, setEntities] = useState<SportsEntity[]>(INITIAL_SPORTS_ENTITIES);
@@ -140,6 +140,8 @@ export default function App() {
 
   // Global league scope drives the ticker, the Dislocation Radar, and the screener chips.
   const scoped = leagueScope === "all" ? entities : entities.filter((e) => (e.league || "") === leagueScope);
+  // Real, meaningful header stats (replace the old decorative index/feed-rate/security boxes).
+  const gapCount = entities.filter((e) => e.divergence && Math.abs(e.divergence.gapPP) >= 1).length;
 
   return (
     <div
@@ -202,23 +204,15 @@ export default function App() {
             DELIBERATION ROOM
             <span className="text-[8px] bg-[#00FF66] text-black px-1 rounded font-black">PRO</span>
           </button>
-          <div className="hidden md:flex flex-col text-right">
-            <span className="text-[#D1D4DC]/30 font-bold uppercase">PREDICTION MARKETS · LIVE</span>
-            <span className="text-[#00FF66] font-black font-mono">14,924.81 ▲ +1.14%</span>
+          <div className="hidden md:flex flex-col text-right border-l border-[#2D333B] pl-4">
+            <span className="text-[#D1D4DC]/30 font-bold uppercase">Markets live</span>
+            <span className="text-[#00FF66] font-black font-mono flex items-center gap-1 justify-end">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00FF66] led-blink" /> {entities.length}
+            </span>
           </div>
           <div className="hidden lg:flex flex-col text-right border-l border-[#2D333B] pl-4">
-            <span className="text-[#D1D4DC]/30 font-bold uppercase">CORE FEED METRIC RATE</span>
-            <span className="text-[#00FF66] font-mono font-bold flex items-center gap-1 justify-end">
-              <RefreshCw className="w-2.5 h-2.5 text-[#00FF66] animate-spin" />
-              60 Hz
-            </span>
-          </div>
-          <div className="flex flex-col text-right border-l border-[#2D333B] pl-4">
-            <span className="text-[#D1D4DC]/30 font-bold uppercase">SECURITY LEVEL</span>
-            <span className="text-[#FF9900] font-mono font-bold flex items-center gap-1">
-              <Layers className="w-2.5 h-2.5 text-[#FF9900]" />
-              SECURE
-            </span>
+            <span className="text-[#D1D4DC]/30 font-bold uppercase">Cross-venue gaps</span>
+            <span className="text-[#FF9900] font-black font-mono">{gapCount}</span>
           </div>
         </div>
       </header>
@@ -287,14 +281,13 @@ export default function App() {
             <span className="font-bold text-[#D1D4DC]/50">TICKER LABS LTD.</span>
           </div>
           <span className="text-[#D1D4DC]/20">|</span>
-          <span>CONN: ESTABLISHED</span>
-          <span>NODE: US-EAST-1</span>
-          <span>LATENCY: 12ms</span>
+          <span>Data: Polymarket + Kalshi (derived)</span>
+          <span>Grounded by Gemini</span>
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 sm:text-right justify-end">
-          <span>SYSTEM HEALTH: 99.98%</span>
-          <span className="text-[#00FF66] font-bold">DATA FEED SECURE</span>
-          <span className="text-[#D1D4DC]/20 italic">v2.4.1</span>
+          <a href="/faq" className="hover:text-[#00FF66] transition">FAQ</a>
+          <a href="/compliance" className="hover:text-[#00FF66] transition">Compliance</a>
+          <span className="text-[#FF9900] font-bold">INTEL ONLY · NEVER PICKS</span>
         </div>
       </footer>
 
