@@ -148,4 +148,4 @@ applicable. Kalshi data is used for derived analytics and attributed link-out on
 
 ## License
 
-[Apache License 2.0](LICENSE) © Ticker Labs. Bundled font: JetBrains Mono ([OFL](web/assets/fonts/OFL.txt)).
+[Apache License 2.0](LICENSE) © Kritxlabs. Bundled font: JetBrains Mono ([OFL](web/assets/fonts/OFL.txt)).

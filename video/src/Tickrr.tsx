@@ -377,7 +377,7 @@ const CTA: React.FC<{ dur: number }> = ({ dur }) => {
         Start free · Upgrade when the edge pays for itself
       </div>
       <div style={{ ...rise(frame, 36, fps), fontFamily: MONO, fontSize: 20, color: C.amber, marginTop: 30, letterSpacing: 3 }}>
-        INTEL ONLY · NEVER PICKS · BY TICKER LABS
+        INTEL ONLY · NEVER PICKS · BY KRITXLABS
       </div>
     </AbsoluteFill>
   );

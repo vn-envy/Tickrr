@@ -88,7 +88,7 @@ export default function Home({ onEnter, onGoPro, premium }: Props) {
         <div className="relative z-10 px-6 md:px-12 max-w-2xl">
           <div className="font-mono text-[11px] tracking-widest text-[#FF9900] mb-3 flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#00FF66] led-blink" />
-            TICKER LABS · SPORTS · POLITICS · MACRO · CRYPTO
+            KRITXLABS · SPORTS · POLITICS · MACRO · CRYPTO
           </div>
           <h1 className="font-sans font-black text-4xl md:text-6xl leading-[1.05] tracking-tight text-white">
             Trade prediction markets on <span className="text-[#00FF66] terminal-glow-green">information</span>, not vibes.
@@ -227,7 +227,7 @@ export default function Home({ onEnter, onGoPro, premium }: Props) {
       {/* Footer */}
       <footer className="relative z-10 px-6 md:px-12 py-8 border-t border-[#2D333B]/60 flex flex-col sm:flex-row items-center justify-between gap-3 font-mono text-[10px] text-[#D1D4DC]/40">
         <div className="flex items-center gap-4">
-          <span className="font-bold text-[#D1D4DC]/60">TICKER LABS LTD.</span>
+          <span className="font-bold text-[#D1D4DC]/60">KRITXLABS LTD.</span>
           <a href="/blog" className="hover:text-[#00FF66] transition">Blog</a>
           <a href="/faq" className="hover:text-[#00FF66] transition">FAQ</a>
           <a href="/compliance" className="hover:text-[#00FF66] transition">Compliance</a>

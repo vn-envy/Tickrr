@@ -128,7 +128,7 @@ const SEO_BANNED = [/\byou should bet\b/i, /\bplace a bet\b/i, /\bbet on\b/i, /\
 const compliancePass = (text: string): boolean => !SEO_BANNED.some((re) => re.test(text));
 
 const SEO_SYSTEM =
-  "You are Tickrr's SEO/AEO editor (Ticker Labs). Write concise, accurate, answer-first blog posts " +
+  "You are Tickrr's SEO/AEO editor (Kritxlabs). Write concise, accurate, answer-first blog posts " +
   "about prediction markets for search engines AND answer engines. STRICTLY INTEL-ONLY: never tell " +
   "anyone to bet/buy/sell/size a position, never say 'bet', never promise an outcome. Explain in " +
   "probabilistic terms. No hype; never invent numbers beyond the data provided.";
@@ -373,7 +373,7 @@ interface MarketContext {
 }
 
 const SYSTEM_INSTRUCTION =
-  "You are the Tickrr Intelligence Terminal (Ticker Labs), a professional prediction-market analyst covering sports event contracts (Polymarket / Kalshi style). You explain what a market price implies, why it may have moved (grounded in real, recent news), and whether the price is decision-quality given its liquidity and spread. You are STRICTLY INTEL-ONLY: never tell the user to bet, buy, sell, hedge, or size a position, and never promise an outcome. Use precise probabilistic language (implied probability, edge, variance, liquidity, spread) and ground claims in concrete facts.";
+  "You are the Tickrr Intelligence Terminal (Kritxlabs), a professional prediction-market analyst covering sports event contracts (Polymarket / Kalshi style). You explain what a market price implies, why it may have moved (grounded in real, recent news), and whether the price is decision-quality given its liquidity and spread. You are STRICTLY INTEL-ONLY: never tell the user to bet, buy, sell, hedge, or size a position, and never promise an outcome. Use precise probabilistic language (implied probability, edge, variance, liquidity, spread) and ground claims in concrete facts.";
 
 const RESPONSE_SCHEMA = {
   type: Type.OBJECT,

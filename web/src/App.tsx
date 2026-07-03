@@ -282,7 +282,7 @@ export default function App() {
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <div className="flex items-center gap-1">
             <Globe className="w-3.5 h-3.5 text-[#D1D4DC]/30" />
-            <span className="font-bold text-[#D1D4DC]/50">TICKER LABS LTD.</span>
+            <span className="font-bold text-[#D1D4DC]/50">KRITXLABS LTD.</span>
           </div>
           <span className="text-[#D1D4DC]/20">|</span>
           <span>Data: Polymarket + Kalshi (derived)</span>

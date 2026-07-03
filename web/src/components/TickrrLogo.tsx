@@ -108,7 +108,7 @@ export default function TickrrLogo() {
           </span>
         </div>
         <span className="text-[8px] font-mono tracking-widest text-[#D1D4DC]/40 mt-1 uppercase font-bold">
-          BY TICKER LABS
+          BY KRITXLABS
         </span>
       </div>
     </div>

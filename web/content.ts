@@ -8,7 +8,7 @@
 
 export const SITE = {
   name: "Tickrr",
-  company: "Ticker Labs",
+  company: "Kritxlabs",
   tagline: "The Bloomberg Terminal for prediction markets",
   // Public origin, used for canonical URLs + sitemap. Defaults to the live domain; override
   // per-deploy with APP_URL (e.g. to a *.run.app URL) if needed.
@@ -88,7 +88,7 @@ export const COMPLIANCE: { updated: string; sections: ComplianceSection[] } = {
   sections: [
     {
       h: "Informational only — not advice",
-      p: "Tickrr (a product of Ticker Labs) provides informational analytics about prediction markets. Nothing on Tickrr is financial, investment, legal, tax, or betting advice, an offer or solicitation, or a recommendation to bet, buy, sell, hedge, or size any position. All content is general information presented in probabilistic terms.",
+      p: "Tickrr (a product of Kritxlabs) provides informational analytics about prediction markets. Nothing on Tickrr is financial, investment, legal, tax, or betting advice, an offer or solicitation, or a recommendation to bet, buy, sell, hedge, or size any position. All content is general information presented in probabilistic terms.",
     },
     {
       h: "Intel only — no execution",
@@ -112,7 +112,7 @@ export const COMPLIANCE: { updated: string; sections: ComplianceSection[] } = {
     },
     {
       h: "Contact",
-      p: "Questions about this notice, or a data/removal request? Contact Ticker Labs at support4u@tickrr.tech.",
+      p: "Questions about this notice, or a data/removal request? Contact Kritxlabs at support4u@tickrr.tech.",
     },
   ],
 };
