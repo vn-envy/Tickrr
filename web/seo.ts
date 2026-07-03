@@ -65,39 +65,44 @@ const faqLd = (faqs: QA[]) => ({
 });
 
 const CSS = `
-:root{--bg:#08090B;--panel:#0D1117;--bd:#1C2128;--grn:#00FF66;--amb:#FF9900;--tx:#E6E8EB;--dim:#8B949E}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+:root{--bg:#050608;--panel:#0B0E11;--bd:#2D333B;--bd2:#1C2128;--grn:#00FF66;--amb:#FF9900;--red:#FF3B30;--tx:#D1D4DC;--dim:#8B949E;--faint:#5A626B;--mono:"JetBrains Mono",ui-monospace,SFMono-Regular,monospace}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.65 "Inter",ui-sans-serif,system-ui,sans-serif;background-image:radial-gradient(rgba(255,255,255,0.028) 1px,transparent 1px);background-size:64px 64px}
 a{color:var(--grn);text-decoration:none}a:hover{text-decoration:underline}
-code{font-family:ui-monospace,"JetBrains Mono",monospace;background:#0d1117;border:1px solid var(--bd);border-radius:4px;padding:1px 5px;font-size:.9em}
-header,footer{border-color:var(--bd)}
+code{font-family:var(--mono);background:var(--panel);border:1px solid var(--bd);border-radius:4px;padding:1px 5px;font-size:.9em;color:var(--amb)}
 .wrap{max-width:820px;margin:0 auto;padding:0 20px}
-header{border-bottom:1px solid var(--bd);position:sticky;top:0;background:rgba(8,9,11,.85);backdrop-filter:blur(8px)}
-.nav{display:flex;align-items:center;gap:22px;height:60px}
-.brand{font-weight:800;font-size:20px;letter-spacing:-.5px;color:var(--tx)}
+header{border-bottom:1px solid var(--bd);position:sticky;top:0;background:rgba(5,6,8,.9);backdrop-filter:blur(10px);z-index:50}
+.nav{display:flex;align-items:center;gap:18px;height:60px}
+.logo{display:flex;align-items:center;gap:10px}.logo:hover{text-decoration:none}
+.mark{width:34px;height:34px;border-radius:9px;background:var(--grn);display:flex;align-items:center;justify-content:center;box-shadow:0 0 22px rgba(0,255,102,.4);flex:none}
+.brand{font-weight:800;font-size:19px;letter-spacing:-.5px;color:var(--tx)}
 .brand b{color:var(--grn)}
-.nav a{color:var(--dim);font-size:14px;font-weight:600}
-.nav a:hover{color:var(--grn);text-decoration:none}
-.nav .sp{flex:1}
+.live{font:700 8px/1 var(--mono);letter-spacing:1px;color:var(--grn);border:1px solid rgba(0,255,102,.4);border-radius:4px;padding:3px 4px;margin-left:2px}
+.sp{flex:1}
+.lnk{color:var(--dim);font:600 13px/1 var(--mono);letter-spacing:.5px}.lnk:hover{color:var(--grn);text-decoration:none}
+.cta{background:var(--grn);color:#000;font:800 12px/1 var(--mono);letter-spacing:.5px;padding:10px 14px;border-radius:7px;box-shadow:0 0 20px rgba(0,255,102,.35)}.cta:hover{background:#33ff85;text-decoration:none}
 main{padding:44px 0 64px}
-h1{font-size:34px;line-height:1.15;letter-spacing:-1px;margin:.2em 0 .3em}
-h2{font-size:23px;margin:1.7em 0 .4em;letter-spacing:-.4px}
-h3{font-size:18px;margin:1.4em 0 .3em}
-.eyebrow{font:600 12px/1 ui-monospace,monospace;letter-spacing:3px;color:var(--amb);text-transform:uppercase}
+h1{font-size:34px;line-height:1.15;letter-spacing:-1px;margin:.3em 0 .3em}
+h2{font-size:22px;margin:1.7em 0 .4em;letter-spacing:-.3px}
+h3{font-size:18px;margin:1.3em 0 .3em}
+.eyebrow{font:700 12px/1 var(--mono);letter-spacing:3px;color:var(--amb);text-transform:uppercase}
 .lede{color:var(--dim);font-size:18px}
-blockquote{border-left:3px solid var(--grn);margin:1.4em 0;padding:.2em 0 .2em 16px;color:var(--dim);font-style:italic}
+blockquote{border-left:3px solid var(--grn);margin:1.4em 0;padding:.3em 0 .3em 16px;color:var(--dim);font-style:italic}
 .faq{border-top:1px solid var(--bd);padding:20px 0}
-.faq h3{margin:0 0 .4em;font-size:18px;color:var(--tx)}
+.faq h3{margin:0 0 .4em;font-size:17px;color:var(--tx)}
 .faq p{margin:0;color:var(--dim)}
-.card{display:block;border:1px solid var(--bd);border-radius:12px;padding:18px 20px;margin:14px 0;background:var(--panel)}
-.card:hover{border-color:#2D333B;text-decoration:none}
+.card{display:block;border:1px solid var(--bd);border-radius:10px;padding:18px 20px;margin:14px 0;background:rgba(11,14,17,.5)}
+.card:hover{border-color:var(--grn);text-decoration:none;box-shadow:0 0 0 1px rgba(0,255,102,.15)}
 .card h3{margin:0 0 .3em;color:var(--tx)}
 .card p{margin:0;color:var(--dim);font-size:15px}
-.meta{color:var(--dim);font-size:13px;font-family:ui-monospace,monospace}
-.tag{display:inline-block;border:1px solid var(--bd);border-radius:99px;padding:2px 10px;font-size:12px;color:var(--dim);margin:0 6px 6px 0}
-.disc{border:1px solid #FF990033;background:#FF99000d;border-radius:10px;padding:12px 16px;color:var(--amb);font-size:14px;margin:22px 0}
-footer{border-top:1px solid var(--bd);padding:26px 0;color:var(--dim);font-size:13px;margin-top:40px}
-footer a{color:var(--dim)}footer .row{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:8px}
+.meta{color:var(--faint);font:12px/1.4 var(--mono)}
+.tag{display:inline-block;border:1px solid var(--bd);border-radius:99px;padding:2px 10px;font:12px/1 var(--mono);color:var(--dim);margin:0 6px 6px 0}
+.disc{border:1px solid rgba(255,153,0,.25);background:rgba(255,153,0,.06);border-radius:8px;padding:12px 16px;color:var(--amb);font-size:14px;margin:22px 0}
+footer{border-top:1px solid var(--bd);padding:24px 0;color:var(--faint);font:12px/1.6 var(--mono);margin-top:40px}
+footer a{color:var(--dim)}footer a:hover{color:var(--grn)}footer .row{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px}
+footer .intel{color:var(--amb);font-weight:700}
+@media(max-width:560px){.lnk{display:none}}
 `;
 
 interface PageOpts {
@@ -131,14 +136,18 @@ export function layout(o: PageOpts): string {
 ${lds}
 </head><body>
 <header><div class="wrap"><nav class="nav">
-<a class="brand" href="/">TICKRR<b>.</b></a>
+<a class="logo" href="/">
+<span class="mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg></span>
+<span class="brand">TICKRR<b>.</b></span><span class="live">LIVE</span>
+</a>
 <span class="sp"></span>
-<a href="/">Terminal</a><a href="/blog">Blog</a><a href="/faq">FAQ</a><a href="/compliance">Compliance</a>
+<a class="lnk" href="/blog">Blog</a><a class="lnk" href="/faq">FAQ</a><a class="lnk" href="/compliance">Compliance</a>
+<a class="cta" href="/?enter=1">Launch Terminal →</a>
 </nav></div></header>
 <main><div class="wrap">${o.bodyHtml}</div></main>
 <footer><div class="wrap">
 <div class="row"><a href="/">Terminal</a><a href="/blog">Blog</a><a href="/faq">FAQ</a><a href="/compliance">Compliance</a><a href="/sitemap.xml">Sitemap</a></div>
-<div>${esc(SITE.name)} by ${esc(SITE.company)} · Polymarket + Kalshi · grounded by Gemini · <strong>Intel only, never picks.</strong> Not financial or betting advice.</div>
+<div>${esc(SITE.name)} by ${esc(SITE.company)} · Data: Polymarket + Kalshi (derived) · Grounded by Gemini · <span class="intel">Intel only, never picks.</span> Not financial or betting advice.</div>
 </div></footer>
 </body></html>`;
 }

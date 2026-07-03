@@ -55,6 +55,10 @@ export default function App() {
       setPro(true);
       setEntered(true);
       window.history.replaceState({}, "", window.location.pathname);
+    } else if (params.get("enter") === "1") {
+      // Arriving from a content page's "Launch Terminal" CTA — drop straight into the terminal.
+      enterTerminal();
+      window.history.replaceState({}, "", window.location.pathname);
     } else if (sessionStorage.getItem("tickrr_entered") === "1") {
       setEntered(true);
     }
