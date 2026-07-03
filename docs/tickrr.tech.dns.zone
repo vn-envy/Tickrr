@@ -1,0 +1,26 @@
+; ============================================================================
+; Tickrr — DNS zone for tickrr.tech
+; Points the apex domain at the Cloud Run service "tickrr-web"
+; (Google-managed TLS cert auto-provisions once these resolve).
+;
+; Import in Hostinger:  hPanel -> Domains -> tickrr.tech -> DNS / Nameservers
+;                       -> "Import zone file" -> upload this file.
+;
+; BEFORE importing: delete any existing A / AAAA records on "@" (Hostinger's
+; default parking records) so they don't conflict with these.
+;
+; Also confirm tickrr.tech is using Hostinger's nameservers, or this zone
+; won't take effect.
+; ============================================================================
+$ORIGIN tickrr.tech.
+$TTL 3600
+
+@   IN  A       216.239.32.21
+@   IN  A       216.239.34.21
+@   IN  A       216.239.36.21
+@   IN  A       216.239.38.21
+
+@   IN  AAAA    2001:4860:4802:32::15
+@   IN  AAAA    2001:4860:4802:34::15
+@   IN  AAAA    2001:4860:4802:36::15
+@   IN  AAAA    2001:4860:4802:38::15
