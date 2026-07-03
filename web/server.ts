@@ -5,6 +5,12 @@ import Stripe from "stripe";
 import dotenv from "dotenv";
 import { Draft, getGrowthStore } from "./growthStore";
 import { captureAndHost, MEDIA_MODE, Media } from "./media";
+import { getBlogStore } from "./blogStore";
+import { SEED_POSTS, BlogPost } from "./content";
+import {
+  renderFaqPage, renderCompliancePage, renderBlogIndex, renderBlogPost,
+  sitemapXml, robotsTxt, llmsTxt,
+} from "./seo";
 
 dotenv.config();
 
@@ -101,6 +107,104 @@ async function generateDrafts(count = 3): Promise<Draft[]> {
   }
   await (await getGrowthStore()).addDrafts(fresh);
   return fresh;
+}
+
+// ---- SEO / AEO content (server-rendered blog) + the AI SEO editor ---------------------------
+
+/** Seed posts + AI-generated posts, deduped by slug, newest first. */
+async function allPosts(): Promise<BlogPost[]> {
+  let stored: BlogPost[] = [];
+  try { stored = await (await getBlogStore()).getPosts(); } catch { /* seed-only on store error */ }
+  const bySlug = new Map<string, BlogPost>();
+  for (const p of [...stored, ...SEED_POSTS]) if (!bySlug.has(p.slug)) bySlug.set(p.slug, p);
+  return [...bySlug.values()].sort((a, b) => (a.date < b.date ? 1 : -1));
+}
+
+const slugify = (s: string): string =>
+  s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 70) || `post-${Date.now()}`;
+
+// Compliance gate for generated copy — block betting/advice language before it can be published.
+const SEO_BANNED = [/\byou should bet\b/i, /\bplace a bet\b/i, /\bbet on\b/i, /\bwe recommend (betting|buying|selling)\b/i, /\bguaranteed\b/i, /\bsure thing\b/i];
+const compliancePass = (text: string): boolean => !SEO_BANNED.some((re) => re.test(text));
+
+const SEO_SYSTEM =
+  "You are Tickrr's SEO/AEO editor (Ticker Labs). Write concise, accurate, answer-first blog posts " +
+  "about prediction markets for search engines AND answer engines. STRICTLY INTEL-ONLY: never tell " +
+  "anyone to bet/buy/sell/size a position, never say 'bet', never promise an outcome. Explain in " +
+  "probabilistic terms. No hype; never invent numbers beyond the data provided.";
+
+async function fetchSeoContext(): Promise<string> {
+  const out: string[] = [];
+  try {
+    const r = await fetch(`${MARKET_API}/api/divergences?top=6`);
+    if (r.ok) {
+      const d: any[] = await r.json();
+      if (d.length) out.push("Top cross-venue gaps (Polymarket vs Kalshi):\n" + d.map((m) =>
+        `- ${m.market?.question}: Polymarket ${m.divergence?.polymarket}% vs Kalshi ${m.divergence?.kalshi}% (gap ${m.divergence?.gap_pp}pp)`).join("\n"));
+    }
+  } catch { /* skip */ }
+  try {
+    const r = await fetch(`${MARKET_API}/api/calendar?limit=6`);
+    if (r.ok) {
+      const d: any = await r.json();
+      const evs = d.events || [];
+      if (evs.length) out.push("Upcoming catalysts:\n" + evs.map((e: any) => `- ${e.title} (${e.date}, ${e.category})`).join("\n"));
+    }
+  } catch { /* skip */ }
+  return out.join("\n\n");
+}
+
+/** The AI SEO editor: draft a fresh, answer-first post from live market data (Gemini), compliance-
+ * checked and persisted. Falls back to a templated post when no Gemini key is set (still demoable). */
+async function generateBlogPost(): Promise<BlogPost> {
+  const store = await getBlogStore();
+  const ctx = await fetchSeoContext();
+  const today = new Date().toISOString().slice(0, 10);
+  const apiKey = process.env.GEMINI_API_KEY;
+  let post: BlogPost | null = null;
+
+  if (apiKey && ctx) {
+    try {
+      const ai = new GoogleGenAI({ apiKey, httpOptions: { headers: { "User-Agent": "aistudio-build" } } });
+      const schema = {
+        type: Type.OBJECT,
+        properties: {
+          title: { type: Type.STRING, description: "A clear question or 'what/how' phrase for search + answer engines." },
+          description: { type: Type.STRING, description: "One-sentence meta description." },
+          body: { type: Type.STRING, description: "Markdown, 350-500 words, answer-first, with ## headings and bullet lists." },
+          tags: { type: Type.ARRAY, items: { type: Type.STRING } },
+          faqs: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { q: { type: Type.STRING }, a: { type: Type.STRING } }, required: ["q", "a"] } },
+        },
+        required: ["title", "description", "body", "tags", "faqs"],
+      };
+      const resp: any = await ai.models.generateContent({
+        model: MODEL,
+        contents: `Write today's Tickrr Journal post. Base it ONLY on this live prediction-market data (do not invent other numbers):\n\n${ctx}\n\nOpen with the answer, explain what these cross-venue gaps and catalysts MEAN as intelligence, and keep it intel-only (never advise betting).`,
+        config: { systemInstruction: SEO_SYSTEM, responseMimeType: "application/json", responseSchema: schema },
+      });
+      const j = JSON.parse((resp.text || "").trim());
+      post = { slug: slugify(j.title), title: j.title, description: j.description, date: today, tags: (j.tags || []).slice(0, 5), body: j.body, faqs: (j.faqs || []).slice(0, 3), generated: true };
+    } catch { /* fall through to template */ }
+  }
+
+  if (!post) {
+    post = {
+      slug: slugify(`prediction-market-read-${today}`),
+      title: `Prediction-Market Read — ${today}`,
+      description: "Today's cross-venue gaps and upcoming catalysts across sports, politics, macro and crypto. Intel only.",
+      date: today, tags: ["prediction markets", "divergence", "catalysts"],
+      body: `## Today's read\n\n${ctx || "Live dislocations, cross-venue gaps, and catalysts across the board."}\n\n> Intel only. Tickrr never tells you to bet and never promises an outcome.`,
+      generated: true,
+    };
+  }
+
+  if (!compliancePass(`${post.title} ${post.body}`)) {
+    throw new Error("Generated post failed the intel-only compliance check.");
+  }
+  if (await store.hasSlug(post.slug)) post.slug = `${post.slug}-${today}`;
+  if (await store.hasSlug(post.slug)) post.slug = `${post.slug}-${Math.random().toString(36).slice(2, 6)}`;
+  await store.addPost(post);
+  return post;
 }
 
 async function publishDiscord(text: string): Promise<string> {
@@ -608,6 +712,33 @@ Produce a prediction-market intelligence report on this market. Explain what the
       }
     });
   }
+
+  // ---- SEO / AEO: server-rendered content + crawl files (MUST precede the SPA catch-all) ----
+  app.get("/faq", (_req, res) => res.type("html").send(renderFaqPage()));
+  app.get("/compliance", (_req, res) => res.type("html").send(renderCompliancePage()));
+  app.get("/blog", async (_req, res) => res.type("html").send(renderBlogIndex(await allPosts())));
+  app.get("/blog/:slug", async (req, res) => {
+    const post = (await allPosts()).find((p) => p.slug === req.params.slug);
+    if (!post) return res.status(404).type("html").send(renderBlogIndex(await allPosts()));
+    res.type("html").send(renderBlogPost(post));
+  });
+  app.get("/robots.txt", (_req, res) => res.type("text/plain").send(robotsTxt()));
+  app.get("/sitemap.xml", async (_req, res) => res.type("application/xml").send(sitemapXml(await allPosts())));
+  app.get("/llms.txt", async (_req, res) => res.type("text/plain").send(llmsTxt(await allPosts())));
+
+  // SEO automation — the AI SEO editor: manual generate + secret-guarded cron (Cloud Scheduler).
+  app.post("/api/seo/generate", async (_req, res) => {
+    try { res.json({ post: await generateBlogPost() }); }
+    catch (e: any) { res.status(500).json({ error: e?.message || "seo generate failed" }); }
+  });
+  app.post("/api/seo/cron", async (req, res) => {
+    const secret = process.env.SEO_CRON_SECRET || GROWTH_CRON_SECRET;
+    if (!secret) return res.status(403).json({ error: "Cron disabled — set SEO_CRON_SECRET." });
+    const key = req.get("x-cron-key") || String(req.query.key || "");
+    if (key !== secret) return res.status(401).json({ error: "Unauthorized." });
+    try { const p = await generateBlogPost(); res.json({ created: p.slug }); }
+    catch (e: any) { res.status(500).json({ error: e?.message || "seo cron failed" }); }
+  });
 
   // Vite integration
   if (process.env.NODE_ENV !== "production") {

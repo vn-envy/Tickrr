@@ -226,7 +226,12 @@ export default function Home({ onEnter, onGoPro, premium }: Props) {
 
       {/* Footer */}
       <footer className="relative z-10 px-6 md:px-12 py-8 border-t border-[#2D333B]/60 flex flex-col sm:flex-row items-center justify-between gap-3 font-mono text-[10px] text-[#D1D4DC]/40">
-        <span className="font-bold text-[#D1D4DC]/60">TICKER LABS LTD.</span>
+        <div className="flex items-center gap-4">
+          <span className="font-bold text-[#D1D4DC]/60">TICKER LABS LTD.</span>
+          <a href="/blog" className="hover:text-[#00FF66] transition">Blog</a>
+          <a href="/faq" className="hover:text-[#00FF66] transition">FAQ</a>
+          <a href="/compliance" className="hover:text-[#00FF66] transition">Compliance</a>
+        </div>
         <span className="text-center sm:text-right max-w-xl">
           Tickrr provides informational market analytics only. Not financial, investment, or betting advice;
           it does not execute trades. Prediction markets involve risk. 18+/21+ where applicable.
