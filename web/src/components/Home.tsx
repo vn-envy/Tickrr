@@ -122,7 +122,8 @@ export default function Home({ onEnter, onGoPro, premium }: Props) {
       </section>
 
       {/* Story */}
-      <section className="relative z-10 px-6 md:px-12 py-16 border-t border-[#2D333B]/60 max-w-5xl">
+      <section className="relative z-10 px-6 md:px-12 py-16 border-t border-[#2D333B]/60">
+        <div className="max-w-5xl mx-auto text-center">
         <div className="font-mono text-[11px] tracking-widest text-[#FF9900] mb-3">THE GAP</div>
         <p className="text-xl md:text-2xl font-sans leading-relaxed text-[#D1D4DC]/90">
           Prediction markets are exploding — billions trade daily across sports, politics, macro and crypto — but
@@ -130,11 +131,12 @@ export default function Home({ onEnter, onGoPro, premium }: Props) {
           both major venues at once, scores every market for <span className="text-[#00FF66]">decision quality</span>,
           and flags the <span className="text-[#FF9900]">dislocations</span> the moment they open.
         </p>
+        </div>
       </section>
 
       {/* Features */}
-      <section className="relative z-10 px-6 md:px-12 pb-16 max-w-6xl">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <section className="relative z-10 px-6 md:px-12 pb-16">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {FEATURES.map((f) => (
             <div key={f.title} className="glass-panel rounded p-5 relative">
               {f.pro && (
@@ -149,7 +151,8 @@ export default function Home({ onEnter, onGoPro, premium }: Props) {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="relative z-10 px-6 md:px-12 py-16 border-t border-[#2D333B]/60 max-w-6xl">
+      <section id="pricing" className="relative z-10 px-6 md:px-12 py-16 border-t border-[#2D333B]/60">
+        <div className="max-w-6xl mx-auto">
         <div className="text-center mb-10">
           <div className="font-mono text-[11px] tracking-widest text-[#FF9900] mb-2">PRICING</div>
           <h2 className="font-sans font-black text-3xl text-white">Start free. Go Pro when you want the edge.</h2>
@@ -222,6 +225,7 @@ export default function Home({ onEnter, onGoPro, premium }: Props) {
         <p className="text-center text-[10px] text-[#D1D4DC]/30 font-mono mt-6">
           Secure checkout via Razorpay. Cancel anytime. Prices in USD.
         </p>
+        </div>
       </section>
 
       {/* Footer */}

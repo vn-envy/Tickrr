@@ -246,16 +246,16 @@ export default function App() {
           {activeEntity.category === "athlete" && (
             <PlayerDossier entity={activeEntity} entities={entities} onSelect={(e) => setActiveEntity(e)} />
           )}
-          {/* Active SVG Telemetry Chart */}
-          <div className="h-[300px]">
+          {/* Active SVG Telemetry Chart — enough height that the stats board never clips */}
+          <div className="h-[340px] md:h-[360px] shrink-0">
             <TelemetryChart entity={activeEntity} />
           </div>
 
           {/* Cross-venue value strip: Polymarket vs Kalshi vs sportsbook consensus */}
           <VenueStrip entity={activeEntity} />
 
-          {/* AI-Powered Intel Intelligence & Custom Query Station */}
-          <div className="h-[420px]">
+          {/* AI-Powered Intel Intelligence & Custom Query Station (scrolls internally) */}
+          <div className="h-[420px] shrink-0">
             <IntelligencePanel entity={activeEntity} premium={pro} onUpgrade={() => setPaywallOpen(true)} />
           </div>
         </div>
