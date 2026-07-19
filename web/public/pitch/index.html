@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tickrr — Investor Pitch · The Bloomberg Terminal for Prediction Markets</title>
+<meta name="description" content="Tickrr investor pitch. The ask: $100k to reach 200,000 users in 60 days. Real-time intelligence terminal for prediction markets." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --green:#00FF66; --amber:#FF9900; --red:#FF3B30;
+    --bg:#050608; --panel:#0B0E11; --panel2:#0D1117; --border:#2D333B; --border2:#1C2128;
+    --text:#E6E8EB; --dim:#8B949E; --faint:#5A626B;
+    --mono:"JetBrains Mono",ui-monospace,monospace; --sans:"Inter",system-ui,sans-serif;
+    --ease:cubic-bezier(.22,.61,.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);overflow:hidden}
+  body{user-select:none}
+
+  /* ===== Deck shell ===== */
+  #deck{position:fixed;inset:0;z-index:1}
+  .slide{position:absolute;inset:0;opacity:0;visibility:hidden;transition:opacity .55s var(--ease);display:flex;flex-direction:column;overflow:hidden}
+  .slide.active{opacity:1;visibility:visible}
+  .slide.active .reveal{animation:rise .7s var(--ease) both}
+  .slide.active .reveal-1{animation-delay:.08s}
+  .slide.active .reveal-2{animation-delay:.18s}
+  .slide.active .reveal-3{animation-delay:.28s}
+  .slide.active .reveal-4{animation-delay:.38s}
+  .slide.active .reveal-5{animation-delay:.48s}
+  .slide.active .reveal-6{animation-delay:.58s}
+  @keyframes rise{from{opacity:0;transform:translateY(28px);filter:blur(6px)}to{opacity:1;transform:none;filter:blur(0)}}
+
+  /* ===== Ambient backdrop ===== */
+  .grid-bg{position:absolute;inset:0;z-index:0;
+    background-image:radial-gradient(rgba(255,255,255,.04) 1px,transparent 1px);
+    background-size:48px 48px;animation:drift 60s linear infinite}
+  @keyframes drift{from{background-position:0 0}to{background-position:48px 48px}}
+  .glow{position:absolute;inset:0;z-index:0;pointer-events:none;
+    background:radial-gradient(900px 600px at 80% 20%, rgba(0,255,102,.07), transparent 60%),
+               radial-gradient(700px 500px at 15% 85%, rgba(255,153,0,.05), transparent 60%)}
+  .vignette{position:absolute;inset:0;z-index:0;pointer-events:none;
+    background:radial-gradient(120% 120% at 50% 50%, transparent 55%, rgba(0,0,0,.5) 100%)}
+
+  /* ===== Top bar (brand + slide counter) ===== */
+  .topbar{position:fixed;top:0;left:0;right:0;height:52px;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:0 28px;pointer-events:none}
+  .brand{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-weight:800;letter-spacing:.1em;font-size:13px;color:var(--text)}
+  .brand .mark{width:26px;height:26px;border-radius:7px;background:var(--green);display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px rgba(0,255,102,.4)}
+  .brand .mark svg{width:15px;height:15px}
+  .brand b{color:var(--green)}
+  .brand small{color:var(--faint);font-weight:600;letter-spacing:.2em;font-size:9px;margin-left:2px}
+  .counter{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.15em;font-weight:600}
+  .counter b{color:var(--green)}
+
+  /* ===== Bottom nav ===== */
+  .nav{position:fixed;bottom:0;left:0;right:0;height:54px;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:0 28px}
+  .nav .dots{display:flex;gap:7px;align-items:center}
+  .nav .dot{width:7px;height:7px;border-radius:50%;background:var(--border);cursor:pointer;transition:all .3s var(--ease)}
+  .nav .dot.active{background:var(--green);box-shadow:0 0 10px rgba(0,255,102,.6);transform:scale(1.3)}
+  .nav .dot:hover{background:var(--dim)}
+  .nav .arrows{display:flex;gap:10px}
+  .nav button{cursor:pointer;width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:rgba(11,14,17,.8);color:var(--dim);display:flex;align-items:center;justify-content:center;transition:all .2s var(--ease);font-family:var(--mono);font-size:14px}
+  .nav button:hover{border-color:var(--green);color:var(--green);box-shadow:0 0 12px rgba(0,255,102,.2)}
+  .nav button:disabled{opacity:.3;cursor:default}
+  .nav button:disabled:hover{border-color:var(--border);color:var(--dim);box-shadow:none}
+
+  /* ===== Shared content styles ===== */
+  .pad{padding:72px 80px 70px;flex:1;display:flex;flex-direction:column;position:relative;z-index:2}
+  .eyebrow{font-family:var(--mono);font-weight:700;letter-spacing:.3em;font-size:11px;color:var(--amber);text-transform:uppercase;display:flex;align-items:center;gap:10px;margin-bottom:18px}
+  .eyebrow::before{content:"";width:24px;height:2px;background:var(--amber)}
+  h1{font-weight:900;font-size:clamp(36px,5.2vw,72px);line-height:1.02;letter-spacing:-.025em;color:#fff;text-wrap:balance}
+  h1 .g{color:var(--green)} h1 .a{color:var(--amber)}
+  h2{font-weight:800;font-size:clamp(28px,3.6vw,46px);line-height:1.08;letter-spacing:-.02em;color:#fff;text-wrap:balance}
+  h2 .g{color:var(--green)} h2 .a{color:var(--amber)}
+  h3{font-weight:700;font-size:18px;color:#fff;letter-spacing:-.01em}
+  .lede{font-size:clamp(16px,1.5vw,21px);line-height:1.55;color:var(--dim);max-width:760px;margin-top:18px}
+  .lede b{color:var(--text);font-weight:600}
+  .lede .g{color:var(--green)} .lede .a{color:var(--amber)}
+
+  .pill{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.1em;padding:6px 12px;border-radius:99px;border:1px solid var(--border);color:var(--dim);text-transform:uppercase}
+  .pill.green{border-color:rgba(0,255,102,.4);color:var(--green);background:rgba(0,255,102,.06)}
+  .pill.amber{border-color:rgba(255,153,0,.4);color:var(--amber);background:rgba(255,153,0,.06)}
+  .pill .dot{width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor}
+
+  .cards{display:grid;gap:18px;margin-top:34px}
+  .card{background:rgba(11,14,17,.6);border:1px solid var(--border);border-radius:14px;padding:24px;backdrop-filter:blur(10px);transition:border-color .3s,transform .3s}
+  .card:hover{border-color:rgba(0,255,102,.3);transform:translateY(-3px)}
+  .card .ic{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+  .card .ic.g{background:rgba(0,255,102,.12);color:var(--green)}
+  .card .ic.a{background:rgba(255,153,0,.12);color:var(--amber)}
+  .card .ic svg{width:20px;height:20px}
+  .card p{color:var(--dim);font-size:14px;line-height:1.55;margin-top:6px}
+
+  .stat-row{display:flex;gap:48px;margin-top:36px;flex-wrap:wrap}
+  .stat{display:flex;flex-direction:column;gap:4px}
+  .stat .n{font-family:var(--mono);font-weight:800;font-size:clamp(32px,3.8vw,52px);line-height:1;letter-spacing:-.02em}
+  .stat .n.g{color:var(--green)} .stat .n.a{color:var(--amber)} .stat .n.w{color:#fff}
+  .stat .l{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.1em;text-transform:uppercase;font-weight:600}
+
+  /* ===== Slide-specific ===== */
+
+  /* Title */
+  .title-slide .pad{justify-content:center;align-items:flex-start}
+  .title-slide h1{font-size:clamp(44px,7vw,96px)}
+  .title-meta{margin-top:28px;display:flex;gap:10px;flex-wrap:wrap}
+  .title-sub{margin-top:22px;font-family:var(--mono);font-size:13px;color:var(--dim);letter-spacing:.04em;line-height:1.6;max-width:600px}
+  .title-sub b{color:var(--green)}
+
+  /* Problem */
+  .problem-stat{margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:28px;max-width:1000px}
+  .ps{background:rgba(11,14,17,.5);border:1px solid var(--border);border-radius:12px;padding:22px 26px}
+  .ps .big{font-family:var(--mono);font-weight:800;font-size:38px;color:var(--amber);letter-spacing:-.02em}
+  .ps .big.g{color:var(--green)}
+  .ps .lbl{font-size:14px;color:var(--dim);margin-top:8px;line-height:1.5}
+  .pain{margin-top:34px;display:flex;flex-direction:column;gap:14px;max-width:780px}
+  .pain .row{display:flex;gap:14px;align-items:flex-start}
+  .pain .x{color:var(--red);font-family:var(--mono);font-weight:800;font-size:18px;flex-shrink:0;width:24px}
+  .pain .t{font-size:16px;color:var(--text);line-height:1.5}
+  .pain .t b{color:var(--amber)}
+
+  /* Solution */
+  .sol-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:40px;margin-top:30px;flex:1;align-items:center}
+  .sol-shot{border-radius:14px;overflow:hidden;border:1px solid var(--border);box-shadow:0 30px 80px rgba(0,255,102,.08),0 14px 40px rgba(0,0,0,.5);background:var(--panel)}
+  .sol-shot .bar{height:34px;display:flex;align-items:center;gap:7px;padding:0 14px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:11px;color:var(--faint)}
+  .sol-shot .bar i{width:10px;height:10px;border-radius:50%}
+  .sol-shot img{width:100%;display:block}
+  .feat-list{display:flex;flex-direction:column;gap:16px}
+  .feat{display:flex;gap:14px;align-items:flex-start}
+  .feat .n{font-family:var(--mono);font-weight:800;font-size:13px;color:var(--green);background:rgba(0,255,102,.1);border:1px solid rgba(0,255,102,.3);width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .feat .t{font-size:15px;color:var(--text);line-height:1.5}
+  .feat .t b{color:#fff}
+
+  /* Product screenshots */
+  .shot-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:28px;flex:1;align-content:center}
+  .shot-card{border-radius:12px;overflow:hidden;border:1px solid var(--border);background:var(--panel);box-shadow:0 20px 50px rgba(0,0,0,.4)}
+  .shot-card .cap{padding:10px 14px;font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.1em;text-transform:uppercase;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px}
+  .shot-card .cap .g{color:var(--green)}
+  .shot-card img{width:100%;display:block;aspect-ratio:16/10;object-fit:cover;object-position:top}
+
+  /* Market */
+  .market-funnel{margin-top:36px;display:flex;flex-direction:column;gap:0;max-width:780px}
+  .funnel-row{display:flex;align-items:center;gap:18px;padding:16px 0;border-bottom:1px solid var(--border2)}
+  .funnel-row:last-child{border-bottom:none}
+  .funnel-bar{height:42px;border-radius:8px;display:flex;align-items:center;padding:0 18px;font-family:var(--mono);font-weight:700;font-size:14px;color:#000;white-space:nowrap}
+  .funnel-meta{font-size:13px;color:var(--dim);line-height:1.5}
+  .funnel-meta b{color:var(--text)}
+
+  /* Traction */
+  .trac-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:36px}
+  .trac{background:rgba(11,14,17,.5);border:1px solid var(--border);border-radius:12px;padding:22px;text-align:center}
+  .trac .n{font-family:var(--mono);font-weight:800;font-size:34px;color:var(--green);letter-spacing:-.02em}
+  .trac .l{font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.1em;text-transform:uppercase;margin-top:8px}
+  .live-badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;font-weight:700;color:var(--green);background:rgba(0,255,102,.08);border:1px solid rgba(0,255,102,.3);padding:5px 11px;border-radius:6px;margin-top:28px}
+  .live-badge .d{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 1.8s infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+
+  /* Business model */
+  .bm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:34px}
+  .bm{border-radius:14px;padding:26px;border:1px solid var(--border);background:rgba(11,14,17,.5);display:flex;flex-direction:column}
+  .bm.hl{border-color:rgba(0,255,102,.5);box-shadow:0 0 30px rgba(0,255,102,.1);background:rgba(0,255,102,.04)}
+  .bm .tag{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--faint)}
+  .bm .name{font-size:22px;font-weight:800;color:#fff;margin-top:8px}
+  .bm .price{font-family:var(--mono);font-weight:800;font-size:40px;color:var(--green);margin-top:14px;letter-spacing:-.02em}
+  .bm .price .per{font-size:14px;color:var(--faint);font-weight:600}
+  .bm ul{list-style:none;margin-top:18px;flex:1;display:flex;flex-direction:column;gap:9px}
+  .bm li{font-size:13px;color:var(--dim);line-height:1.5;display:flex;gap:9px;align-items:flex-start}
+  .bm li::before{content:"✓";color:var(--green);font-weight:800;flex-shrink:0}
+  .bm.hl .price{color:var(--green)}
+
+  /* Growth engine */
+  .growth-flow{margin-top:34px;background:rgba(11,14,17,.5);border:1px solid var(--border);border-radius:14px;padding:28px;max-width:900px}
+  .flow-line{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--dim);line-height:1.6}
+  .flow-step{background:rgba(0,255,102,.08);border:1px solid rgba(0,255,102,.25);color:var(--green);padding:8px 14px;border-radius:8px;font-weight:700}
+  .flow-arrow{color:var(--faint);font-size:16px}
+  .channels{margin-top:22px;display:flex;gap:10px;flex-wrap:wrap}
+  .ch{font-family:var(--mono);font-size:11px;font-weight:700;padding:8px 14px;border-radius:8px;border:1px solid var(--border);color:var(--dim);background:rgba(11,14,17,.4)}
+  .ch b{color:var(--amber)}
+
+  /* The Ask */
+  .ask-hero{display:flex;align-items:baseline;gap:20px;margin-top:30px;flex-wrap:wrap}
+  .ask-amount{font-family:var(--mono);font-weight:900;font-size:clamp(64px,9vw,128px);line-height:.9;letter-spacing:-.04em;color:var(--green);text-shadow:0 0 40px rgba(0,255,102,.3)}
+  .ask-goal{font-family:var(--mono);font-weight:800;font-size:clamp(28px,3vw,42px);color:#fff;letter-spacing:-.02em}
+  .ask-goal .g{color:var(--green)}
+  .ask-sub{font-size:17px;color:var(--dim);margin-top:14px;max-width:680px;line-height:1.55}
+  .ask-sub b{color:var(--text)}
+
+  /* Use of funds */
+  .uof{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:34px;max-width:900px}
+  .uof-row{display:flex;align-items:center;gap:16px;background:rgba(11,14,17,.5);border:1px solid var(--border);border-radius:12px;padding:20px 24px}
+  .uof-pct{font-family:var(--mono);font-weight:800;font-size:30px;color:var(--amber);min-width:80px;letter-spacing:-.02em}
+  .uof-t{font-size:15px;color:var(--text);line-height:1.45}
+  .uof-t b{color:#fff}
+  .uof-t small{display:block;font-size:12px;color:var(--dim);margin-top:3px}
+
+  /* Projection */
+  .proj-chart{margin-top:34px;display:flex;align-items:flex-end;gap:14px;height:200px;max-width:760px;padding-bottom:30px;border-bottom:1px solid var(--border)}
+  .proj-bar{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;position:relative}
+  .proj-bar .b{width:100%;border-radius:6px 6px 0 0;transition:height 1s var(--ease);background:linear-gradient(180deg,var(--green),rgba(0,255,102,.3))}
+  .proj-bar.target .b{background:linear-gradient(180deg,var(--amber),rgba(255,153,0,.3))}
+  .proj-bar .v{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--text);position:absolute;top:-22px}
+  .proj-bar .l{font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.08em;text-transform:uppercase}
+
+  /* Team */
+  .team-card{margin-top:34px;background:rgba(11,14,17,.5);border:1px solid var(--border);border-radius:14px;padding:32px;max-width:680px}
+  .team-card .name{font-size:24px;font-weight:800;color:#fff}
+  .team-card .role{font-family:var(--mono);font-size:12px;color:var(--amber);letter-spacing:.1em;text-transform:uppercase;margin-top:6px}
+  .team-card .bio{font-size:15px;color:var(--dim);line-height:1.6;margin-top:16px}
+  .team-card .bio b{color:var(--text)}
+
+  /* Closing */
+  .close-slide .pad{justify-content:center;align-items:center;text-align:center}
+  .close-slide h1{font-size:clamp(40px,6vw,80px)}
+  .close-cta{margin-top:36px;display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+  .btn{font-family:var(--mono);font-weight:800;letter-spacing:.05em;font-size:14px;padding:15px 28px;border-radius:10px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);transition:all .25s var(--ease)}
+  .btn:hover{transform:translateY(-2px)}
+  .btn-go{background:var(--green);color:#000;border-color:var(--green);box-shadow:0 0 28px rgba(0,255,102,.35)}
+  .btn-go:hover{box-shadow:0 0 40px rgba(0,255,102,.5)}
+  .btn-ghost{color:var(--text)}
+  .btn-ghost:hover{border-color:rgba(0,255,102,.5);color:var(--green)}
+  .close-disc{margin-top:28px;font-family:var(--mono);font-size:12px;color:var(--amber);letter-spacing:.2em}
+
+  /* Hint */
+  .hint{position:fixed;bottom:62px;left:50%;transform:translateX(-50%);z-index:15;font-family:var(--mono);font-size:10px;letter-spacing:.15em;color:var(--faint);opacity:.6;transition:opacity .5s}
+  .hint.hide{opacity:0}
+
+  /* Responsive */
+  @media(max-width:900px){
+    .pad{padding:64px 28px 70px}
+    .sol-grid,.shot-grid,.uof{grid-template-columns:1fr}
+    .trac-grid{grid-template-columns:repeat(2,1fr)}
+    .bm-grid{grid-template-columns:1fr}
+    .problem-stat{grid-template-columns:1fr}
+    .stat-row{gap:28px}
+  }
+</style>
+</head>
+<body>
+
+<div id="deck">
+
+  <!-- ============ 1. TITLE ============ -->
+  <section class="slide title-slide active" data-slide="0">
+    <div class="grid-bg"></div><div class="glow"></div><div class="vignette"></div>
+    <div class="pad">
+      <div class="eyebrow reveal reveal-1">Investor Pitch · 2026</div>
+      <h1 class="reveal reveal-2">Trade prediction markets<br>on <span class="g">information</span>,<br>not vibes.</h1>
+      <div class="title-meta reveal reveal-3">
+        <span class="pill green"><span class="dot"></span>LIVE NOW</span>
+        <span class="pill amber">SEEKING $100K</span>
+        <span class="pill">60-DAY SPRINT TO 200K USERS</span>
+      </div>
+      <p class="title-sub reveal reveal-4">
+        <b>Tickrr</b> is the Bloomberg Terminal for prediction markets — real-time intelligence across
+        sports, politics, macro &amp; crypto. Fair value, dislocations, cross-venue gaps, and a Gemini-powered
+        AI intel engine. <b>Intel only. Never picks.</b>
+      </p>
+      <p class="title-sub reveal reveal-5" style="margin-top:14px;font-size:11px;color:var(--faint)">
+        Built by Kritxlabs · Powered by Gemini · Running on Google Cloud Run
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ 2. PROBLEM ============ -->
+  <section class="slide" data-slide="1">
+    <div class="grid-bg"></div><div class="glow"></div><div class="vignette"></div>
+    <div class="pad">
+      <div class="eyebrow reveal reveal-1">The Problem</div>
+      <h1 class="reveal reveal-2">Prediction markets are <span class="a">exploding</span>.<br>Retail flies <span class="a">blind</span>.</h1>
+      <div class="problem-stat reveal reveal-3">
+        <div class="ps">
+          <div class="big">$24B+</div>
+          <div class="lbl">traded monthly across prediction markets — sports, politics, macro, crypto. Volume is compounding.</div>
+        </div>
+        <div class="ps">
+          <div class="big g">Zero</div>
+          <div class="lbl">professional-grade analytics terminal exists for retail. Everyone reads a raw feed and guesses.</div>
+        </div>
+      </div>
+      <div class="pain reveal reveal-4">
+        <div class="row"><span class="x">✕</span><span class="t"><b>Stale prices</b> — no fair-value or liquidity-adjustment. A 62¢ price tells you nothing about whether it's executable.</span></div>
+        <div class="row"><span class="x">✕</span><span class="t"><b>Single-venue blindness</b> — the same question trades on Polymarket AND Kalshi at different prices. Nobody compares them.</span></div>
+        <div class="row"><span class="x">✕</span><span class="t"><b>Thin-book traps</b> — wide spreads hide in plain sight. Retail overpays without knowing.</span></div>
+        <div class="row"><span class="x">✕</span><span class="t"><b>No "why"</b> — when a price moves, there's no grounded explanation of what happened. Just a number.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 3. SOLUTION ============ -->
+  <section class="slide" data-slide="2">
+    <div class="grid-bg"></div><div class="glow"></div><div class="vignette"></div>
+    <div class="pad">
+      <div class="eyebrow reveal reveal-1">The Solution</div>
+      <h2 class="reveal reveal-2">A real-time <span class="g">intelligence terminal</span><br>that reads both venues at once.</h2>
+      <div class="sol-grid">
+        <div class="sol-shot reveal reveal-3">
+          <div class="bar"><i style="background:#FF5F56"></i><i style="background:#FFBD2E"></i><i style="background:#27C93F"></i><span style="margin-left:14px">tickrr.app/terminal</span></div>
+          <img src="../promo/terminal.png" alt="Tickrr terminal" />
+        </div>
+        <div class="feat-list">
+          <div class="feat reveal reveal-3"><div class="n">1</div><div class="t"><b>Fair-value engine</b> — every price normalized to an implied probability with a liquidity-adjusted fair range and a decision-quality rating.</div></div>
+          <div class="feat reveal reveal-4"><div class="n">2</div><div class="t"><b>Dislocation Radar</b> — momentum, overreaction, and thin-book traps flagged live, ranked by severity.</div></div>
+          <div class="feat reveal reveal-5"><div class="n">3</div><div class="t"><b>Cross-venue divergence</b> — Polymarket vs Kalshi vs sportsbook consensus, on one axis. The gap IS the edge.</div></div>
+          <div class="feat reveal reveal-6"><div class="n">4</div><div class="t"><b>Grounded AI intel</b> — Gemini + Google Search explains "why it moved" with citations.</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 4. PRODUCT ============ -->
+  <section class="slide" data-slide="3">
+    <div class="grid-bg"></div><div class="glow"></div><div class="vignette"></div>
+    <div class="pad">
+      <div class="eyebrow reveal reveal-1">The Product · Live Now</div>
+      <h2 class="reveal reveal-2">Built. Deployed. <span class="g">Working.</span></h2>
+      <div class="shot-grid">
+        <div class="shot-card reveal reveal-3">
+          <img src="../promo/hero.png" alt="Tickrr home" />
+          <div class="cap"><span class="g">●</span> Home · the board</div>
+        </div>
+        <div class="shot-card reveal reveal-3">
+          <img src="../promo/nba.png" alt="Cross-venue" />
+          <div class="cap"><span class="g">●</span> Cross-venue divergence</div>
+        </div>
+        <div class="shot-card reveal reveal-4">
+          <img src="../promo/growth.png" alt="Growth engine" />
+          <div class="cap"><span class="g">●</span> Autonomous growth engine</div>
+        </div>
+        <div class="shot-card reveal reveal-4">
+          <img src="../promo/myspace.png" alt="My Space" />
+          <div class="cap"><span class="g">●</span> Personal watchlist · My Space</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 5. MARKET ============ -->
+  <section class="slide" data-slide="4">
+    <div class="grid-bg"></div><div class="glow"></div><div class="vignette"></div>
+    <div class="pad">
+      <div class="eyebrow reveal reveal-1">Market Opportunity</div>
+      <h2 class="reveal reveal-2">A <span class="g">$24B+/month</span> market<br>with <span class="a">no incumbent</span>.</h2>
+      <div class="market-funnel reveal reveal-3">
+        <div class="funnel-row">
+          <div class="funnel-bar" style="width:100%;background:var(--green)">Prediction-market volume · ~$24B+/mo</div>
+        </div>
+        <div class="funnel-row">
+          <div class="funnel-bar" style="width:62%;background:rgba(0,255,102,.7)">Active retail traders · ~15M globally</div>
+          <div class="funnel-meta"><b>Polymarket</b> + <b>Kalshi</b> + <b>sportsbooks</b> — growing 3-5×/yr</div>
+        </div>
+        <div class="funnel-row">
+          <div class="funnel-bar" style="width:28%;background:rgba(0,255,102,.5)">Need analytics to decide · ~4M</div>
+          <div class="funnel-meta">Power users, traders, analysts, creators — <b>our beachhead</b></div>
+        </div>
+        <div class="funnel-row">
+          <div class="funnel-bar" style="width:8%;background:var(--amber)">Will pay for Pro · ~400K</div>
+          <div class="funnel-meta"><b>1% conversion</b> of the addressable base = <b>$760K MRR</b> at $19/mo</div>
+        </div>
+      </div>
+      <p class="lede reveal reveal-4" style="margin-top:30px">
+        Every spectacle — World Cup, Super Bowl, FOMC, elections — is now a prediction-market event.
+        <b class="g">Tickrr follows the money</b> across all of them with one engine.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ 6. TRACTION ============ -->
+  <section class="slide" data-slide="5">
+    <div class="grid-bg"></div><div class="glow"></div><div class="vignette"></div>
+    <div class="pad">
+      <div class="eyebrow reveal reveal-1">Traction</div>
+      <h2 class="reveal reveal-2">Shipped. <span class="g">Live.</span> Generating signal.</h2>
+      <div class="trac-grid">
+        <div class="trac reveal reveal-3"><div class="n">9</div><div class="l">Event universes live</div></div>
+        <div class="trac reveal reveal-3"><div class="n">3</div><div class="l">Venues integrated</div></div>
+        <div class="trac reveal reveal-4"><div class="n">4</div><div class="l">AI agents (Gemini)</div></div>
+        <div class="trac reveal reveal-4"><div class="n">100%</div><div class="l">On Google Cloud</div></div>
+      </div>
+      <div class="live-badge reveal reveal-5"><span class="d"></span> DEPLOYED · tickrr-web-qqocdd33ra-uc.a.run.app</div>
+      <p class="lede reveal reveal-5" style="margin-top:24px">
+        <b>Full stack is built and deployed:</b> FastAPI intelligence engine, React terminal, Gemini-powered AI panel,
+        Deliberation Room, autonomous growth engine, MCP server for AI agents, server-rendered SEO blog, and a
+        Pro waitlist capturing real intent. <b class="g">Zero to revenue is a config flip.</b>
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ 7. BUSINESS MODEL ============ -->
+  <section class="slide" data-slide="6">
+    <div class="grid-bg"></div><div class="glow"></div><div class="vignette"></div>
+    <div class="pad">
+      <div class="eyebrow reveal reveal-1">Business Model</div>
+      <h2 class="reveal reveal-2">Freemium. <span class="g">Pro unlocks the edge.</span></h2>
+      <div class="bm-grid">
+        <div class="bm reveal reveal-3">
+          <div class="tag">Acquisition</div>
+          <div class="name">Free</div>
+          <div class="price">$0<span class="per">/forever</span></div>
+          <ul>
+            <li>Full live terminal + Dislocation Radar</li>
+            <li>Market &amp; player tickers</li>
+            <li>Fair value + real price history</li>
+            <li>Catalyst calendar</li>
+          </ul>
+        </div>
+        <div class="bm hl reveal reveal-4">
+          <div class="tag" style="color:var(--green)">★ Core revenue</div>
+          <div class="name">Pro</div>
+          <div class="price">$19<span class="per">/month</span></div>
+          <ul>
+            <li>Deliberation Room — 2 AI experts debate</li>
+            <li>Live Gemini analysis, grounded w/ sources</li>
+            <li>Ask-anything advisory</li>
+            <li>Cross-venue gap alerts</li>
+            <li>Priority data refresh</li>
+          </ul>
+        </div>
+        <div class="bm reveal reveal-5">
+          <div class="tag">Upsell</div>
+          <div class="name">Founder's Pass</div>
+          <div class="price">$99<span class="per">/lifetime</span></div>
+          <ul>
+            <li>Everything in Pro — for life</li>
+            <li>≈5 months of Pro, paid once</li>
+            <li>Founding-member badge</li>
+            <li>Locked launch pricing</li>
+          </ul>
+        </div>
+      </div>
+      <p class="lede reveal reveal-6" style="margin-top:24px">
+        Plus <b class="a">Event Passes</b> — one-time unlocks tuned to a single spectacle's window
+        (World Cup Pass, NFL Season Pass, etc.). The waitlist is already capturing intent.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ 8. GROWTH ENGINE ============ -->
+  <section class="slide" data-slide="7">
+    <div class="grid-bg"></div><div class="glow"></div><div class="vignette"></div>
+    <div class="pad">
+      <div class="eyebrow reveal reveal-1">Growth Engine</div>
+      <h2 class="reveal reveal-2">The company that <span class="a">markets itself</span>.</h2>
+      <p class="lede reveal reveal-3">
+        Tickrr has a built-in autonomous growth loop: an agent drafts posts from <b>live market signals</b>,
+        a founder approves with one tap, and approved posts auto-publish — with a real screenshot or recording
+        of the live terminal attached. <b class="g">Zero AI cost for media</b> — just compute.
+      </p>
+      <div class="growth-flow reveal reveal-4">
+        <div class="flow-line">
+          <span class="flow-step">Live signals</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step">Agent drafts</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step">Founder approves</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-step">Auto-publish w/ real capture</span>
+        </div>
+        <div class="channels">
+          <span class="ch"><b>X</b> via Buffer</span>
+          <span class="ch"><b>LinkedIn</b> via Buffer</span>
+          <span class="ch"><b>YouTube</b> via Buffer</span>
+          <span class="ch"><b>Discord</b> webhook</span>
+          <span class="ch"><b>Bluesky</b> native</span>
+          <span class="ch"><b>SEO blog</b> (AI editor, server-rendered)</span>
+        </div>
+      </div>
+      <p class="lede reveal reveal-5" style="margin-top:24px">
+        Every post is <b>intel-only by construction</b> (a compliance gate blocks betting language).
+        The whole loop runs on <b class="g">free tiers</b> — Buffer, Discord, Bluesky, Cloud Scheduler.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ 9. THE ASK ============ -->
+  <section class="slide" data-slide="8">
+    <div class="grid-bg"></div><div class="glow"></div><div class="vignette"></div>
+    <div class="pad">
+      <div class="eyebrow reveal reveal-1">The Ask</div>
+      <div class="ask-hero reveal reveal-2">
+        <div class="ask-amount">$100K</div>
+        <div class="ask-goal">→ <span class="g">200,000 users</span><br>in 60 days</div>
+      </div>
+      <p class="ask-sub reveal reveal-3">
+        A focused <b>60-day marketing sprint</b> to take Tickrr from live-and-working to
+        <b>200,000 users</b> and a validated Pro funnel. The product is built — this is pure
+        <b>distribution capital</b> to prove the funnel at scale.
+      </p>
+      <div class="stat-row reveal reveal-4">
+        <div class="stat"><div class="n g">$0.50</div><div class="l">Target CAC</div></div>
+        <div class="stat"><div class="n a">200K</div><div class="l">Users in 60 days</div></div>
+        <div class="stat"><div class="n w">2%</div><div class="l">Pro conversion target</div></div>
+        <div class="stat"><div class="n g">$76K</div><div class="l">MRR at target conversion</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 10. USE OF FUNDS ============ -->
+  <section class="slide" data-slide="9">
+    <div class="grid-bg"></div><div class="glow"></div><div class="vignette"></div>
+    <div class="pad">
+      <div class="eyebrow reveal reveal-1">Use of Funds · $100K</div>
+      <h2 class="reveal reveal-2">Where every dollar goes.</h2>
+      <div class="uof">
+        <div class="uof-row reveal reveal-3">
+          <div class="uof-pct">$50K</div>
+          <div class="uof-t"><b>Paid acquisition</b><small>X/LinkedIn/TikTok ads + creator sponsorships targeting prediction-market &amp; sports-trading communities. The autonomous growth engine amplifies every dollar of paid spend organically.</small></div>
+        </div>
+        <div class="uof-row reveal reveal-3">
+          <div class="uof-pct">$25K</div>
+          <div class="uof-t"><b>Creator &amp; community partnerships</b><small>Sponsor 15-20 prediction-market creators, finance newsletters, and Discord/Reddit communities for demo placements and reviews.</small></div>
+        </div>
+        <div class="uof-row reveal reveal-4">
+          <div class="uof-pct">$15K</div>
+          <div class="uof-t"><b>SEO &amp; content velocity</b><small>Scale the AI SEO editor to publish daily answer-first posts for every cross-venue gap and catalyst — compounding organic traffic.</small></div>
+        </div>
+        <div class="uof-row reveal reveal-4">
+          <div class="uof-pct">$10K</div>
+          <div class="uof-t"><b>Infrastructure &amp; data scaling</b><small>Cloud Run scaling, The Odds API quota, and Polymarket/Kalshi rate-headroom for 200K concurrent users.</small></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 11. 60-DAY PROJECTION ============ -->
+  <section class="slide" data-slide="10">
+    <div class="grid-bg"></div><div class="glow"></div><div class="vignette"></div>
+    <div class="pad">
+      <div class="eyebrow reveal reveal-1">60-Day Projection</div>
+      <h2 class="reveal reveal-2">The path to <span class="g">200K users</span>.</h2>
+      <div class="proj-chart reveal reveal-3">
+        <div class="proj-bar"><div class="v">5K</div><div class="b" style="height:8%"></div><div class="l">Day 10</div></div>
+        <div class="proj-bar"><div class="v">25K</div><div class="b" style="height:20%"></div><div class="l">Day 20</div></div>
+        <div class="proj-bar"><div class="v">60K</div><div class="b" style="height:38%"></div><div class="l">Day 30</div></div>
+        <div class="proj-bar"><div class="v">110K</div><div class="b" style="height:62%"></div><div class="l">Day 40</div></div>
+        <div class="proj-bar"><div class="v">160K</div><div class="b" style="height:82%"></div><div class="l">Day 50</div></div>
+        <div class="proj-bar target"><div class="v">200K</div><div class="b" style="height:100%"></div><div class="l">Day 60</div></div>
+      </div>
+      <p class="lede reveal reveal-4" style="margin-top:30px">
+        Compounding curve: <b>paid acquisition</b> seeds the funnel, the <b>autonomous growth engine</b> amplifies
+        organically, and <b>SEO content</b> compounds daily. By Day 60: <b class="g">200K users · ~4K Pro · ~$76K MRR</b>.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ 12. TEAM ============ -->
+  <section class="slide" data-slide="11">
+    <div class="grid-bg"></div><div class="glow"></div><div class="vignette"></div>
+    <div class="pad">
+      <div class="eyebrow reveal reveal-1">Team</div>
+      <h2 class="reveal reveal-2">Built by <span class="g">Kritxlabs</span>.</h2>
+      <div class="team-card reveal reveal-3">
+        <div class="name">Kritxlabs</div>
+        <div class="role">Builder · AI-native · Shipping</div>
+        <div class="bio">
+          A solo-founded AI-native studio that <b>builds and ships</b>. Tickrr is live, deployed, and serving real
+          intelligence — not a deck and a dream. The entire stack — FastAPI engine, React terminal, Gemini AI,
+          autonomous growth loop, MCP server, SEO engine — was built and deployed end-to-end.
+          <br><br>
+          <b>Built with Gemini. Runs on Google Cloud.</b> Built for the Build with Gemini XPRIZE
+          (Professional Services category).
+        </div>
+      </div>
+      <p class="lede reveal reveal-4" style="margin-top:24px">
+        The $100K isn't to build the product — <b>the product is built</b>. It's to put it in front of 200,000 people
+        and prove the funnel. <b class="g">That's a 60-day bet, not a 12-month build.</b>
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ 13. CLOSING ============ -->
+  <section class="slide close-slide" data-slide="12">
+    <div class="grid-bg"></div><div class="glow"></div><div class="vignette"></div>
+    <div class="pad">
+      <div class="eyebrow reveal reveal-1" style="justify-content:center">The Opportunity</div>
+      <h1 class="reveal reveal-2">$100K. 60 days.<br><span class="g">200,000 users.</span></h1>
+      <p class="lede reveal reveal-3" style="text-align:center;margin:24px auto 0">
+        The terminal is built. The engine is running. The growth loop is wired.
+        <b>This is distribution capital for a product that already works.</b>
+      </p>
+      <div class="close-cta reveal reveal-4">
+        <a class="btn btn-go" href="https://tickrr-web-qqocdd33ra-uc.a.run.app" target="_blank" rel="noreferrer">LAUNCH THE TERMINAL →</a>
+        <a class="btn btn-ghost" href="https://tickrr-api-qqocdd33ra-uc.a.run.app/docs" target="_blank" rel="noreferrer">API DOCS</a>
+      </div>
+      <div class="close-disc reveal reveal-5">INTEL ONLY · NEVER PICKS · BY KRITXLABS</div>
+    </div>
+  </section>
+
+</div>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="brand">
+    <span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg></span>
+    TICKRR<b>.</b><small>KRITXLABS</small>
+  </div>
+  <div class="counter"><b id="cur">01</b> / <span id="tot">13</span></div>
+</div>
+
+<!-- Bottom nav -->
+<div class="nav">
+  <div class="dots" id="dots"></div>
+  <div class="arrows">
+    <button id="prev" title="Previous (←)">‹</button>
+    <button id="next" title="Next (→)">›</button>
+  </div>
+</div>
+
+<div class="hint" id="hint">USE ← → ARROW KEYS OR CLICK TO NAVIGATE</div>
+
+<script>
+(function(){
+  const slides = [...document.querySelectorAll('.slide')];
+  const dotsEl = document.getElementById('dots');
+  const prev = document.getElementById('prev');
+  const next = document.getElementById('next');
+  const cur = document.getElementById('cur');
+  const tot = document.getElementById('tot');
+  const hint = document.getElementById('hint');
+  let idx = 0;
+  tot.textContent = String(slides.length).padStart(2,'0');
+
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.addEventListener('click', () => go(i));
+    dotsEl.appendChild(d);
+  });
+
+  function go(i){
+    if(i < 0 || i >= slides.length) return;
+    slides[idx].classList.remove('active');
+    idx = i;
+    slides[idx].classList.add('active');
+    [...dotsEl.children].forEach((d, k) => d.classList.toggle('active', k === idx));
+    cur.textContent = String(idx + 1).padStart(2,'0');
+    prev.disabled = idx === 0;
+    next.disabled = idx === slides.length - 1;
+    hint.classList.add('hide');
+  }
+
+  prev.addEventListener('click', () => go(idx - 1));
+  next.addEventListener('click', () => go(idx + 1));
+
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(idx + 1); }
+    if(e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(idx - 1); }
+    if(e.key === 'Home') go(0);
+    if(e.key === 'End') go(slides.length - 1);
+  });
+
+  // Click anywhere on slide (not on buttons/links) to advance
+  document.getElementById('deck').addEventListener('click', (e) => {
+    if(e.target.closest('a,button,.dot')) return;
+    go(idx + 1);
+  });
+
+  // Animate projection bars when slide becomes active
+  const observer = new MutationObserver(() => {
+    if(slides[10].classList.contains('active')){
+      const bars = slides[10].querySelectorAll('.proj-bar .b');
+      bars.forEach(b => { const h = b.style.height; b.style.height = '0'; setTimeout(() => b.style.height = h, 100); });
+    }
+  });
+  observer.observe(slides[10], { attributes: true, attributeFilter: ['class'] });
+
+  go(0);
+})();
+</script>
+</body>
+</html>
