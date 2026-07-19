@@ -3,12 +3,11 @@
 Scans a market's price + microstructure for the situations a prediction-market trader cares
 about and returns the single most severe flag (or None for an unremarkable market):
 
+  * divergence     — the same question priced differently on Polymarket vs Kalshi,
+  * value_vs_books — the prediction market disagrees with the sportsbook consensus,
   * momentum      — a sharp recent move; active repricing worth investigating,
   * liquidity_trap — a thin/wide book that's easy to overpay and may not fill at size,
   * overreaction   — a sharp move into an extreme price; watch mean-reversion vs. real news.
-
-Cross-venue divergence (Kalshi vs Polymarket) is the next signal — pending a Kalshi data
-license — and will slot in here as another candidate.
 """
 from __future__ import annotations
 
@@ -20,6 +19,7 @@ OVERREACTION_MIN = 0.04
 EXTREME_HI = 0.85
 EXTREME_LO = 0.15
 DIVERGENCE_MIN = 0.01
+BOOKS_GAP_MIN = 0.02  # books consensus is a mean across many books — demand a wider gap
 
 
 def _norm_change(x: float | None) -> float:
@@ -32,10 +32,29 @@ def _norm_change(x: float | None) -> float:
 
 
 def detect(market: MarketSnapshot, fv: FairValue, kalshi_prob: float | None = None,
-           kalshi_url: str | None = None) -> Dislocation | None:
+           kalshi_url: str | None = None, books_prob: float | None = None,
+           book_count: int = 0) -> Dislocation | None:
     p = fv.implied_prob
     m = _norm_change(market.one_week_change)
     candidates: list[Dislocation] = []
+
+    # 0a. Value vs the sportsbook consensus: the prediction market disagrees with the
+    # de-vigged mean across real-money books. Either side may be right — that's the intel.
+    if books_prob is not None:
+        b = p - books_prob
+        if abs(b) >= BOOKS_GAP_MIN:
+            candidates.append(Dislocation(
+                kind="value_vs_books",
+                label=f"Books gap {b * 100:+.1f}pp",
+                severity=round(min(1.0, 0.50 + abs(b) / 0.12), 2),
+                direction="up" if b > 0 else "down",
+                action="research",
+                rationale=(
+                    f"Polymarket {p * 100:.1f}% vs sportsbook consensus {books_prob * 100:.1f}% "
+                    f"(de-vigged mean of {book_count} book quotes) — a {abs(b) * 100:.1f}pp gap. "
+                    "One crowd is mispricing this; work out which before trusting either."
+                ),
+            ))
 
     # 0. Cross-venue divergence (marquee signal): Polymarket vs Kalshi.
     if kalshi_prob is not None:

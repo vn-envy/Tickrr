@@ -65,7 +65,10 @@ def _trim(m: dict) -> dict:
     dv = m.get("divergence")
     if dv:
         out["cross_venue_gap"] = {"polymarket_pct": dv.get("polymarket"), "kalshi_pct": dv.get("kalshi"),
-                                  "gap_pp": dv.get("gap_pp"), "kalshi_url": dv.get("url")}
+                                  "gap_pp": dv.get("gap_pp"), "kalshi_url": dv.get("url"),
+                                  "books_consensus_pct": dv.get("books"), "book_count": dv.get("book_count"),
+                                  "books_gap_pp": dv.get("books_gap_pp"), "best_book": dv.get("best_book"),
+                                  "best_price": dv.get("best_price")}
     return out
 
 

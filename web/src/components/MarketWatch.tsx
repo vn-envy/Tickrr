@@ -165,7 +165,7 @@ export default function MarketWatch({
               <th className="py-2.5 px-2 font-semibold hidden sm:table-cell">MARKET</th>
               <th className="py-2.5 px-2 font-semibold"><InfoTip metric="impliedProb" className="justify-end w-full">IMPLIED %</InfoTip></th>
               <th className="py-2.5 px-2 font-semibold"><InfoTip metric="change1w" className="justify-end w-full">1W &#916;</InfoTip></th>
-              <th className="py-2.5 px-2 font-semibold hidden md:table-cell"><InfoTip metric="liquidity" className="justify-end w-full">LIQ</InfoTip></th>
+              <th className="py-2.5 px-2 font-semibold hidden md:table-cell"><InfoTip metric="edge" className="justify-end w-full">EDGE</InfoTip></th>
               <th className="py-2.5 px-3 font-semibold hidden md:table-cell"><InfoTip metric="quality" className="justify-end w-full">QUALITY</InfoTip></th>
             </tr>
           </thead>
@@ -180,6 +180,8 @@ export default function MarketWatch({
               filtered.map((item) => {
                 const isActive = item.id === activeEntity.id;
                 const isPositive = item.change >= 0;
+                // Edge = gap vs the sportsbook consensus when the books price it, else vs Kalshi.
+                const edge = item.divergence?.booksGapPP ?? item.divergence?.gapPP;
                 return (
                   <tr
                     key={item.id}
@@ -251,9 +253,18 @@ export default function MarketWatch({
                       {isPositive ? "+" : ""}{item.change.toFixed(2)}%
                     </td>
 
-                    {/* Efficiency (PER) */}
-                    <td className="py-2 px-2 text-right text-[#00FF66]/80 hidden md:table-cell">
-                      {item.efficiency.toFixed(1)}
+                    {/* Edge vs books/Kalshi (pp) */}
+                    <td
+                      className={`py-2 px-2 text-right font-bold hidden md:table-cell ${
+                        edge == null
+                          ? "text-[#D1D4DC]/25"
+                          : Math.abs(edge) >= 2
+                          ? "text-[#FF9900]"
+                          : "text-[#D1D4DC]/60"
+                      }`}
+                      title={edge == null ? "No second venue prices this outcome" : "Polymarket vs sportsbook consensus (or Kalshi), in pp"}
+                    >
+                      {edge == null ? "—" : `${edge >= 0 ? "+" : ""}${edge.toFixed(1)}pp`}
                     </td>
 
                     {/* Decision quality */}

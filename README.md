@@ -56,7 +56,7 @@ intelligence panel** that explains every move with grounded sources.
 | Capability | What you get |
 |---|---|
 | **Dislocation Radar** | Live edge signals — momentum, overreaction, thin-book/liquidity traps — ranked by severity the moment they appear. |
-| **Cross-Venue Divergence** | Polymarket vs Kalshi on the *same* outcome, with the gap computed so you see which book is mispriced. |
+| **Cross-Venue Divergence** | Polymarket vs Kalshi vs the **sportsbook consensus** (DraftKings, FanDuel, Pinnacle & ~40 books via The Odds API, de-vigged) on the *same* outcome — the gaps computed so you see which crowd is mispriced. |
 | **Fair Value** | Every market normalized to a comparable probability with a liquidity- and spread-aware fair range. |
 | **Player Dossiers** | Per-player tickers (Golden Boot, to-score, assists) mapped to national teams, plus a live Wikipedia attention signal. |
 | **Real Price History** | Implied-probability charts straight from the Polymarket CLOB. |
@@ -101,7 +101,7 @@ Monorepo, two Cloud Run services:
 | Path | Role |
 |---|---|
 | `backend/` | **Python · FastAPI** — the intelligence engine: data ingestion, fair-value, dislocation & divergence detection, player index. Serves the read API. |
-| `web/` | **Vite · React 19 · Tailwind v4 · Express** — the terminal UI + a Node server that fronts Gemini, Stripe, the growth engine, and proxies market data (browser stays same-origin: no CORS). |
+| `web/` | **Vite · React 19 · Tailwind v4 · Express** — the terminal UI + a Node server that fronts Gemini, Razorpay, the growth engine, and proxies market data (browser stays same-origin: no CORS). |
 | `docs/` | Deploy + operations guides. |
 
 **Data (derived analytics only):** Polymarket (Gamma + CLOB, primary) · Kalshi (derived cross-venue
@@ -128,7 +128,7 @@ uvicorn app.main:app --port 8000
 cd web && npm install && cp .env.example .env && npm run dev   # http://localhost:3000
 ```
 Everything runs in free/demo mode without keys; see `web/.env.example` for optional integrations
-(Gemini, Stripe, Discord/Bluesky/Buffer publishing, Firestore, media).
+(Gemini, Razorpay, Discord/Bluesky/Buffer publishing, Firestore, media).
 
 ---
 

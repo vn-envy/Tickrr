@@ -48,9 +48,14 @@ interface DislocationT {
 
 interface DivergenceT {
   polymarket: number;
-  kalshi: number;
+  kalshi?: number | null;
   gap_pp: number;
   url?: string | null;
+  books?: number | null;        // sportsbook consensus implied prob %
+  book_count?: number;          // quotes behind the consensus
+  best_book?: string | null;    // best raw price venue
+  best_price?: number | null;   // best decimal price
+  books_gap_pp?: number | null; // poly - books, pp
 }
 
 interface MarketIntel {
@@ -99,18 +104,6 @@ function cleanEvent(eventTitle?: string | null): string {
   return raw || "Market";
 }
 
-/** Gentle random walk that lands on `end`, so the telemetry chart reads as a real series. */
-function synthHistory(end: number, n = 10, vol = 0.06): number[] {
-  const out: number[] = [];
-  let v = end * (1 + (Math.random() - 0.5) * vol * 2);
-  for (let i = 0; i < n; i++) {
-    v = v + (end - v) * 0.25 + (Math.random() - 0.5) * Math.max(end, 1) * vol;
-    out.push(Number(v.toFixed(2)));
-  }
-  out[n - 1] = Number(end.toFixed(2));
-  return out;
-}
-
 export function intelToEntity(mi: MarketIntel): SportsEntity {
   const m = mi.market;
   const fv = mi.fair_value;
@@ -131,11 +124,6 @@ export function intelToEntity(mi: MarketIntel): SportsEntity {
     efficiency: liq,
     stamina: Math.round(tightness),
     speed: Math.round(liq),
-    staminaHistory: synthHistory(tightness),
-    efficiencyHistory: synthHistory(liq),
-    speedHistory: synthHistory(liq),
-    playmakingHistory: synthHistory(impliedPct),
-    defenseHistory: synthHistory(tightness),
     category: mi.subject_type === "player" ? "athlete" : "team",
     // --- honest prediction-market fields ---
     impliedProb: impliedPct,
@@ -152,9 +140,14 @@ export function intelToEntity(mi: MarketIntel): SportsEntity {
     divergence: mi.divergence
       ? {
           polymarket: mi.divergence.polymarket,
-          kalshi: mi.divergence.kalshi,
+          kalshi: mi.divergence.kalshi ?? undefined,
           gapPP: mi.divergence.gap_pp,
           url: mi.divergence.url ?? undefined,
+          books: mi.divergence.books ?? undefined,
+          bookCount: mi.divergence.book_count ?? 0,
+          bestBook: mi.divergence.best_book ?? undefined,
+          bestPrice: mi.divergence.best_price ?? undefined,
+          booksGapPP: mi.divergence.books_gap_pp ?? undefined,
         }
       : undefined,
     enrichment: mi.enrichment

@@ -220,7 +220,7 @@ export default function Home({ onEnter, onGoPro, premium }: Props) {
           </div>
         )}
         <p className="text-center text-[10px] text-[#D1D4DC]/30 font-mono mt-6">
-          Secure checkout via Stripe. Cancel anytime. Prices in USD.
+          Secure checkout via Razorpay. Cancel anytime. Prices in USD.
         </p>
       </section>
 

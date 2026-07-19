@@ -29,6 +29,7 @@ Thumbs.db
 dist/
 build/
 
-# Runtime data (growth drafts, etc.)
-data/
+# Runtime data (growth drafts, etc.) — root-level only; backend/app/data is SOURCE CODE
+# (an unanchored `data/` here once swallowed backend/app/data/calendar.py out of the repo)
+/data/
 web/data/

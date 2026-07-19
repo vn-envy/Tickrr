@@ -15,11 +15,13 @@ export interface SportsEntity {
   efficiency: number; // PER or true efficiency
   stamina: number; // Athletic stamina index (1-100)
   speed: number; // Speed rating (km/h or relative score)
-  staminaHistory: number[]; // For interactive charts
-  efficiencyHistory: number[];
-  speedHistory: number[];
-  playmakingHistory: number[];
-  defenseHistory: number[];
+  // Legacy demo-only series (seed data). Live markets never synthesize these — the
+  // telemetry chart plots the REAL implied-probability history from the Polymarket CLOB.
+  staminaHistory?: number[];
+  efficiencyHistory?: number[];
+  speedHistory?: number[];
+  playmakingHistory?: number[];
+  defenseHistory?: number[];
   category: "athlete" | "team";
   // --- Live prediction-market fields (Tickrr); optional so seed data still type-checks ---
   impliedProb?: number;      // %, 0..100
@@ -43,9 +45,14 @@ export interface SportsEntity {
   };
   divergence?: {
     polymarket: number;
-    kalshi: number;
+    kalshi?: number;
     gapPP: number;
     url?: string;
+    books?: number;      // sportsbook consensus implied prob % (The Odds API, de-vigged)
+    bookCount?: number;  // quotes behind the consensus
+    bestBook?: string;   // who offers the best raw price
+    bestPrice?: number;  // best decimal price on offer
+    booksGapPP?: number; // polymarket - books, pp
   };
   enrichment?: {
     topScorer?: string;

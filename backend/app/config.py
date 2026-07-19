@@ -14,6 +14,12 @@ class Settings(BaseSettings):
     polymarket_clob_url: str = "https://clob.polymarket.com"
     kalshi_api_url: str = "https://api.elections.kalshi.com/trade-api/v2"
 
+    # The Odds API (sportsbook consensus — DraftKings, FanDuel, Pinnacle, bet365, ...).
+    # Free key at the-odds-api.com (500 req/mo; responses cached ~15 min to stay inside it).
+    # Leave empty to run without the books layer — everything degrades gracefully.
+    odds_api_url: str = "https://api.the-odds-api.com"
+    odds_api_key: str = ""
+
     # Google Cloud / Gemini (Vertex AI)
     google_cloud_project: str = ""
     google_cloud_location: str = "us-central1"

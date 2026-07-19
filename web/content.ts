@@ -30,7 +30,7 @@ export interface QA {
 export const FAQS: QA[] = [
   {
     q: "What is Tickrr?",
-    a: "Tickrr is a real-time intelligence terminal for prediction markets — the 'Bloomberg Terminal for prediction markets.' It turns live Polymarket and Kalshi data into decision-quality analytics across sports, politics, macro and crypto: fair-value reads, dislocations, cross-venue gaps, and a catalyst calendar. Tickrr is intel only — it never tells you to bet and never places trades.",
+    a: "Tickrr is a real-time intelligence terminal for prediction markets — the 'Bloomberg Terminal for prediction markets.' It turns live Polymarket, Kalshi and sportsbook-consensus data (The Odds API) into decision-quality analytics across sports, politics, macro and crypto: fair-value reads, dislocations, cross-venue gaps, and a catalyst calendar. Tickrr is intel only — it never tells you to bet and never places trades.",
   },
   {
     q: "Is Tickrr financial, investment, or betting advice?",
@@ -161,7 +161,7 @@ For every market with a counterpart on the other venue, Tickrr displays both imp
       },
       {
         q: "Which venues does Tickrr compare?",
-        a: "Polymarket and Kalshi, for verified like-for-like questions in sports, macro (Fed decisions), and crypto (Bitcoin and Ethereum price markets).",
+        a: "Polymarket and Kalshi for verified like-for-like questions in sports, macro (Fed decisions), and crypto (Bitcoin and Ethereum price markets) — plus a de-vigged sportsbook consensus (DraftKings, FanDuel, Pinnacle & co via The Odds API) for tournament outrights.",
       },
     ],
   },

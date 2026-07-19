@@ -59,10 +59,18 @@ class Dislocation(BaseModel):
 
 
 class Divergence(BaseModel):
-    polymarket: float  # implied prob %
-    kalshi: float      # implied prob %
-    gap_pp: float      # polymarket - kalshi, in percentage points
+    """Same question, different venues. Polymarket is the anchor; Kalshi and/or the
+    sportsbook consensus (The Odds API, de-vigged mean across books) fill in when the
+    outcome is priced there too. `gap_pp` is vs Kalshi when present, else vs books."""
+    polymarket: float          # implied prob %
+    kalshi: float | None = None  # implied prob %
+    gap_pp: float              # percentage points (poly - kalshi, else poly - books)
     url: str | None = None
+    books: float | None = None       # sportsbook consensus implied prob %
+    book_count: int = 0              # how many book quotes back the consensus
+    best_book: str | None = None     # who offers the best raw price
+    best_price: float | None = None  # best decimal price on offer
+    books_gap_pp: float | None = None  # poly - books, percentage points
 
 
 class TeamEnrichment(BaseModel):

@@ -13,7 +13,10 @@ FIRESTORE_LOCATION="${FIRESTORE_LOCATION:-nam5}"  # US multi-region (use eur3 fo
 
 # Optional — default to empty so unset vars don't break --set-env-vars.
 GEMINI_API_KEY="${GEMINI_API_KEY:-}"
-STRIPE_SECRET_KEY="${STRIPE_SECRET_KEY:-}"
+RAZORPAY_KEY_ID="${RAZORPAY_KEY_ID:-}"        # Razorpay checkout — keys live ONLY in env/secrets, never the repo
+RAZORPAY_KEY_SECRET="${RAZORPAY_KEY_SECRET:-}"
+RAZORPAY_CURRENCY="${RAZORPAY_CURRENCY:-USD}"
+ODDS_API_KEY="${ODDS_API_KEY:-}"              # The Odds API — sportsbook consensus (backend)
 GROWTH_CRON_SECRET="${GROWTH_CRON_SECRET:-}"
 SEO_CRON_SECRET="${SEO_CRON_SECRET:-}"       # guards /api/seo/cron; falls back to GROWTH_CRON_SECRET
 APP_URL="${APP_URL:-}"                        # public site origin (e.g. https://tickrr.tech); defaults to the Cloud Run URL
@@ -44,17 +47,18 @@ gcloud firestore databases create --location="$FIRESTORE_LOCATION" --quiet 2>/de
   || echo "    (Firestore database already exists — skipping)"
 
 echo "==> Deploying tickrr-api (backend)"
-gcloud run deploy tickrr-api --source backend --region "$REGION" --allow-unauthenticated --quiet
+gcloud run deploy tickrr-api --source backend --region "$REGION" --allow-unauthenticated --quiet \
+  --set-env-vars "ODDS_API_KEY=${ODDS_API_KEY}"
 API_URL=$(gcloud run services describe tickrr-api --region "$REGION" --format='value(status.url)')
 echo "    API_URL=$API_URL"
 
 echo "==> Deploying tickrr-web (frontend + server)"
 gcloud run deploy tickrr-web --source web --region "$REGION" --allow-unauthenticated \
   --min-instances 1 --memory 1Gi --quiet \
-  --set-env-vars "GROWTH_STORE=firestore,MARKET_API=${API_URL},GEMINI_API_KEY=${GEMINI_API_KEY},STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY},GROWTH_CRON_SECRET=${GROWTH_CRON_SECRET},SEO_CRON_SECRET=${SEO_CRON_SECRET},GROWTH_NOTIFY_WEBHOOK=${GROWTH_NOTIFY_WEBHOOK},DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL},BLUESKY_HANDLE=${BLUESKY_HANDLE},BLUESKY_APP_PASSWORD=${BLUESKY_APP_PASSWORD},BUFFER_ACCESS_TOKEN=${BUFFER_ACCESS_TOKEN}"
+  --set-env-vars "GROWTH_STORE=firestore,MARKET_API=${API_URL},GEMINI_API_KEY=${GEMINI_API_KEY},RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID},RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET},RAZORPAY_CURRENCY=${RAZORPAY_CURRENCY},GROWTH_CRON_SECRET=${GROWTH_CRON_SECRET},SEO_CRON_SECRET=${SEO_CRON_SECRET},GROWTH_NOTIFY_WEBHOOK=${GROWTH_NOTIFY_WEBHOOK},DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL},BLUESKY_HANDLE=${BLUESKY_HANDLE},BLUESKY_APP_PASSWORD=${BLUESKY_APP_PASSWORD},BUFFER_ACCESS_TOKEN=${BUFFER_ACCESS_TOKEN}"
 WEB_URL=$(gcloud run services describe tickrr-web --region "$REGION" --format='value(status.url)')
 
-# Canonical site origin — drives SEO canonicals/sitemap/llms + Stripe redirects. Use the custom
+# Canonical site origin — drives SEO canonicals/sitemap/llms + Razorpay redirects. Use the custom
 # domain if the operator exported APP_URL (e.g. https://tickrr.tech); else the Cloud Run URL.
 SITE_URL="${APP_URL:-$WEB_URL}"
 gcloud run services update tickrr-web --region "$REGION" --quiet \

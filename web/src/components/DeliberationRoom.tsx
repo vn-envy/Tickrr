@@ -88,7 +88,7 @@ export default function DeliberationRoom({ entity, open, onClose, premium = fals
   if (!open) return null;
 
   const activate = async () => {
-    const unlocked = await goPro("pro");  // redirects to Stripe, or unlocks in demo mode
+    const unlocked = await goPro("pro");  // redirects to Razorpay, or unlocks in demo mode
     if (unlocked) onUnlocked?.();
   };
 

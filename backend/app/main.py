@@ -22,6 +22,7 @@ from app.data.kalshi import (
     BTC_REACH_SERIES, ETH_REACH_SERIES, BTC_DIP_SERIES, ETH_DIP_SERIES,
 )
 from app.data.players import country_for
+from app.data.oddsapi import OddsApiClient, sport_key_for
 from app.data import wiki, gdelt, calendar
 from app.engine import fair_value, dislocation
 from app.models import MarketIntel, MarketSnapshot, Outcome, Divergence, TeamEnrichment
@@ -42,6 +43,7 @@ app.add_middleware(
 
 client = PolymarketClient()
 kalshi_client = KalshiClient()
+odds_client = OddsApiClient()  # sportsbook consensus (no-op without ODDS_API_KEY)
 
 
 def _is_winner_event(s: MarketSnapshot) -> bool:
@@ -49,6 +51,13 @@ def _is_winner_event(s: MarketSnapshot) -> bool:
     advance/group/golden-boot events so we don't compare a win-price to a qualify-price."""
     et = (s.event_title or "").lower()
     return "winner" in et and "boot" not in et
+
+
+def _is_outright_event(s: MarketSnapshot) -> bool:
+    """Outright/championship events — the shape sportsbook futures markets price. Broader
+    than `_is_winner_event` (NFL/NBA events say 'champion' rather than 'winner')."""
+    et = (s.event_title or "").lower()
+    return any(k in et for k in ("winner", "champion", "super bowl")) and "boot" not in et
 
 
 _PLAYER_EVENT_KEYS = ("golden boot", "goal leader", "top scorer", "player goals", "assist", "scorer")
@@ -131,7 +140,8 @@ def _fed_key(s: MarketSnapshot) -> tuple[int, int, str] | None:
 
 def _intel(s: MarketSnapshot, kalshi_team: dict | None = None,
            kalshi_player: dict | None = None, player_index: dict | None = None,
-           crypto_ref: dict | None = None, fed_ref: dict | None = None) -> MarketIntel:
+           crypto_ref: dict | None = None, fed_ref: dict | None = None,
+           books_ref: dict | None = None) -> MarketIntel:
     """Fair-value read + cross-venue divergence + (for teams) player-derived enrichment."""
     primary = s.outcomes[0] if s.outcomes else Outcome(label="Yes", price=s.last_price or 0.0)
     fv = fair_value.assess(
@@ -169,13 +179,26 @@ def _intel(s: MarketSnapshot, kalshi_team: dict | None = None,
             if entry and entry.get("prob") is not None:
                 kp, ku = entry["prob"], entry.get("url")
 
+    # Sportsbook consensus (The Odds API): only for team outright markets, where the books
+    # price the identical question ("who wins the tournament/championship").
+    books_entry = None
+    if books_ref and subject == "team" and _is_outright_event(s):
+        books_entry = books_ref.get(key)
+    bp = books_entry.get("prob") if books_entry else None
+
     div = None
-    if kp is not None:
+    if kp is not None or bp is not None:
+        gap = (fv.implied_prob - kp) if kp is not None else (fv.implied_prob - bp)
         div = Divergence(
             polymarket=round(fv.implied_prob * 100, 1),
-            kalshi=round(kp * 100, 1),
-            gap_pp=round((fv.implied_prob - kp) * 100, 1),
+            kalshi=round(kp * 100, 1) if kp is not None else None,
+            gap_pp=round(gap * 100, 1),
             url=ku,
+            books=round(bp * 100, 1) if bp is not None else None,
+            book_count=(books_entry or {}).get("book_count", 0),
+            best_book=(books_entry or {}).get("best_book"),
+            best_price=(books_entry or {}).get("best_price"),
+            books_gap_pp=round((fv.implied_prob - bp) * 100, 1) if bp is not None else None,
         )
 
     # Team enrichment: roll up that country's player golden-boot markets.
@@ -190,7 +213,8 @@ def _intel(s: MarketSnapshot, kalshi_team: dict | None = None,
                 scorer_count=len(scorers),
             )
 
-    disloc = dislocation.detect(s, fv, kalshi_prob=kp, kalshi_url=ku)
+    disloc = dislocation.detect(s, fv, kalshi_prob=kp, kalshi_url=ku,
+                                books_prob=bp, book_count=(books_entry or {}).get("book_count", 0))
     player_country = country_for(s.group_title or s.question) if subject == "player" else None
     return MarketIntel(
         market=s, primary_outcome=primary, fair_value=fv,
@@ -239,7 +263,9 @@ async def _build_intel(query: str, limit: int) -> list[MarketIntel]:
         )
         crypto_ref = {"BTC": {"up": btc_up, "down": btc_dn}, "ETH": {"up": eth_up, "down": eth_dn}}
     fed_ref = await kalshi_client.get_fed_decision_probs() if is_macro else None
-    intel = [_intel(s, kalshi_team, kalshi_player, player_index, crypto_ref, fed_ref) for s in snapshots]
+    # Sportsbook consensus for this universe, when the books have an outright market for it.
+    books_ref = await odds_client.get_consensus(sport_key_for(query) or "", normalize=normalize_team)
+    intel = [_intel(s, kalshi_team, kalshi_player, player_index, crypto_ref, fed_ref, books_ref) for s in snapshots]
     _INTEL_CACHE[key] = (now, intel)
     return intel
 

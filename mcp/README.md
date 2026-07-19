@@ -13,7 +13,7 @@ Gemini XPRIZE: *our customers include other AI agents.*
 |------|-----------------|
 | `list_markets(query, limit)` | Fair-value read per market — implied prob, liquidity-adjusted fair range, spread cost, decision quality, cross-venue gap when one exists. |
 | `list_dislocations(query, limit)` | Markets flagged with a dislocation (momentum, thin-liquidity trap, cross-venue gap), most severe first. |
-| `list_divergences(query?, top)` | Cross-venue gaps — the same question priced on **both** Polymarket and Kalshi, ranked by gap (pp). Omit `query` to sweep sports + macro + crypto. |
+| `list_divergences(query?, top)` | Cross-venue gaps — the same question priced on Polymarket, Kalshi and/or the sportsbook consensus (The Odds API), ranked by gap (pp). Omit `query` to sweep sports + macro + crypto. |
 | `get_calendar(category?, limit)` | Upcoming catalysts (FOMC, CPI, finals, elections), optionally filtered to a category. |
 
 Every row is a **verified like-for-like pair** (same team / price threshold / meeting outcome) —

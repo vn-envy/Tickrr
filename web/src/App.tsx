@@ -12,6 +12,7 @@ import CommandBar from "./components/CommandBar";
 import TickerBanner from "./components/TickerBanner";
 import MarketWatch from "./components/MarketWatch";
 import TelemetryChart from "./components/TelemetryChart";
+import VenueStrip from "./components/VenueStrip";
 import IntelligencePanel from "./components/IntelligencePanel";
 import DeliberationRoom from "./components/DeliberationRoom";
 import DislocationBoard from "./components/DislocationBoard";
@@ -47,7 +48,7 @@ export default function App() {
     if (u) void syncFavoritesFromCloud();
   }), []);
 
-  // Stripe Checkout return (?pro=1) + resume an already-entered session.
+  // Razorpay checkout return (?pro=1) + resume an already-entered session.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("pro") === "1") {
@@ -82,7 +83,7 @@ export default function App() {
   };
 
   const handleGoPro = async (plan: string) => {
-    const unlocked = await goPro(plan);  // redirects to Stripe, or unlocks in demo mode
+    const unlocked = await goPro(plan);  // redirects to Razorpay, or unlocks in demo mode
     if (unlocked) { setPro(true); enterTerminal(); }
   };
 
@@ -102,35 +103,18 @@ export default function App() {
       ticker = `${name.substring(0, 6).toUpperCase()}.US`;
     }
 
-    const value = Number((Math.random() * 15 + 81).toFixed(1));
-    const change = Number((Math.random() * 4 - 2).toFixed(2));
-    const efficiency = Number((Math.random() * 15 + 20).toFixed(1));
-    const stamina = Math.floor(Math.random() * 20) + 75;
-    const speed = Math.floor(Math.random() * 20) + 75;
-
-    // Generate historic trajectory data points
-    const staminaHistory = Array.from({ length: 10 }, () => Math.floor(Math.random() * 15) + 75);
-    const efficiencyHistory = Array.from({ length: 10 }, () => Number((Math.random() * 10 + 20).toFixed(1)));
-    const speedHistory = Array.from({ length: 10 }, () => Math.floor(Math.random() * 15) + 75);
-    const playmakingHistory = Array.from({ length: 10 }, () => Math.floor(Math.random() * 20) + 75);
-    const defenseHistory = Array.from({ length: 10 }, () => Math.floor(Math.random() * 20) + 75);
-
+    // A manual listing has no live market yet — list it flat (no synthetic stats).
     const newEntity: SportsEntity = {
       id: name.toLowerCase().replace(/\s+/g, "-"),
       name,
       ticker,
       sport: "Basketball",
       team: "Dynamic Division",
-      value,
-      change,
-      efficiency,
-      stamina,
-      speed,
-      staminaHistory,
-      efficiencyHistory,
-      speedHistory,
-      playmakingHistory,
-      defenseHistory,
+      value: 50,
+      change: 0,
+      efficiency: 0,
+      stamina: 0,
+      speed: 0,
       category: "athlete"
     };
 
@@ -267,6 +251,9 @@ export default function App() {
             <TelemetryChart entity={activeEntity} />
           </div>
 
+          {/* Cross-venue value strip: Polymarket vs Kalshi vs sportsbook consensus */}
+          <VenueStrip entity={activeEntity} />
+
           {/* AI-Powered Intel Intelligence & Custom Query Station */}
           <div className="h-[420px]">
             <IntelligencePanel entity={activeEntity} premium={pro} onUpgrade={() => setPaywallOpen(true)} />
@@ -285,7 +272,7 @@ export default function App() {
             <span className="font-bold text-[#D1D4DC]/50">KRITXLABS LTD.</span>
           </div>
           <span className="text-[#D1D4DC]/20">|</span>
-          <span>Data: Polymarket + Kalshi (derived)</span>
+          <span>Data: Polymarket + Kalshi + sportsbook consensus via The Odds API (derived)</span>
           <span>Grounded by Gemini</span>
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 sm:text-right justify-end">

@@ -81,7 +81,7 @@ export default function UpgradeModal({ open, onClose, onSelect, reason }: Props)
               </div>
             </div>
           )}
-          <p className="text-[#D1D4DC]/30 text-[9px] mt-3">Secure checkout via Stripe · cancel anytime · intel only, never advice</p>
+          <p className="text-[#D1D4DC]/30 text-[9px] mt-3">Secure checkout via Razorpay · cancel anytime · intel only, never advice</p>
         </div>
       </div>
     </div>

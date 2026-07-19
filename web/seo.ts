@@ -151,7 +151,7 @@ ${lds}
 <main><div class="wrap">${o.bodyHtml}</div></main>
 <footer><div class="wrap">
 <div class="row"><a href="/">Terminal</a><a href="/blog">Blog</a><a href="/faq">FAQ</a><a href="/compliance">Compliance</a><a href="mailto:${SITE.email}">Support</a><a href="/sitemap.xml">Sitemap</a></div>
-<div>${esc(SITE.name)} by ${esc(SITE.company)} · Data: Polymarket + Kalshi (derived) · Grounded by Gemini · <span class="intel">Intel only, never picks.</span> Not financial or betting advice.</div>
+<div>${esc(SITE.name)} by ${esc(SITE.company)} · Data: Polymarket + Kalshi + sportsbook consensus (The Odds API, derived) · Grounded by Gemini · <span class="intel">Intel only, never picks.</span> Not financial or betting advice.</div>
 </div></footer>
 </body></html>`;
 }

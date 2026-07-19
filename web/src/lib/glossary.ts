@@ -66,4 +66,12 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     title: "Intelligence report",
     tip: "A Gemini-generated, Google-Search-grounded read of what the price implies, what moved it, and the risks — with sources. Intel only, never a pick.",
   },
+  venues: {
+    title: "Cross-venue value",
+    tip: "The same outcome priced by three crowds — Polymarket, Kalshi, and the de-vigged sportsbook consensus (DraftKings, FanDuel, Pinnacle & co via The Odds API) — on one axis. Why it matters: when the marks separate, at least one crowd is mispricing the outcome; the separation is where value hides.",
+  },
+  edge: {
+    title: "Edge vs books",
+    tip: "Polymarket's implied probability minus the sportsbook consensus (falls back to the Kalshi gap when books don't price it), in pp. Why it matters: a persistent gap vs the real-money bookmaker crowd is the cleanest value signal on the board.",
+  },
 };

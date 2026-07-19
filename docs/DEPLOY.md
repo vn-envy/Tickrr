@@ -8,7 +8,7 @@ Two containers, both provided with Dockerfiles:
 
 ```
 browser ─▶ tickrr-web (public) ─▶ tickrr-api (MARKET_API)
-                 └─ Gemini · Stripe · growth engine
+                 └─ Gemini · Razorpay · growth engine
 Cloud Scheduler ─▶ tickrr-web /api/growth/cron
 ```
 
@@ -129,7 +129,7 @@ gcloud run deploy tickrr-web ... --set-secrets "GEMINI_API_KEY=gemini-key:latest
 - **Growth queue persistence:** the queue is stored in **Firestore** (collection `growth_drafts`),
   so it persists across restarts, redeploys, and scale-to-zero. Locally (or if Firestore is
   unreachable) it falls back to an on-disk JSON file. Toggle with `GROWTH_STORE=firestore|file`.
-- **Stripe:** set `STRIPE_SECRET_KEY` (test key) and `APP_URL=$WEB_URL` for real hosted checkout;
+- **Razorpay:** set `RAZORPAY_KEY_ID` + `RAZORPAY_KEY_SECRET` (env / Secret Manager — NEVER in the repo) and `APP_URL=$WEB_URL` for real hosted checkout;
   otherwise "Go Pro" runs in demo mode.
 - **Cost:** well within the free tiers + $300 trial for hackathon-scale traffic. Scale to zero by
   dropping `--min-instances 1` if you don't need the warm queue.

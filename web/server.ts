@@ -1,7 +1,6 @@
 import express from "express";
 import path from "path";
 import { GoogleGenAI, Type } from "@google/genai";
-import Stripe from "stripe";
 import dotenv from "dotenv";
 import { Draft, getGrowthStore } from "./growthStore";
 import { captureAndHost, MEDIA_MODE, Media } from "./media";
@@ -16,9 +15,51 @@ dotenv.config();
 
 const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
-const STRIPE_KEY = process.env.STRIPE_SECRET_KEY || "";
 const APP_URL = process.env.APP_URL || "http://localhost:3000";
-const stripe = STRIPE_KEY ? new Stripe(STRIPE_KEY, { apiVersion: "2024-06-20" } as any) : null;
+
+// ---- Razorpay hosted checkout (payment links + subscriptions) -------------------------------
+// Keys come from the ENVIRONMENT ONLY (Cloud Run env vars / GitHub Actions secrets / .env,
+// which is gitignored). NEVER commit the key secret — this repo is public. Without keys,
+// billing runs in demo mode (the client unlocks Pro locally), so the app stays fully demoable.
+const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || "";
+const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || "";
+// Amounts in PLANS are in the smallest currency unit (cents for USD, paise for INR).
+// International (USD) charges require international payments enabled on the Razorpay account;
+// set RAZORPAY_CURRENCY=INR (and re-price PLANS) to charge domestically instead.
+const RAZORPAY_CURRENCY = process.env.RAZORPAY_CURRENCY || "USD";
+// Optional: a pre-created monthly Plan id (plan_...) for Tickrr Pro. If absent, one is
+// created via the API on first checkout and cached for the life of the process.
+const RAZORPAY_PRO_PLAN_ID = process.env.RAZORPAY_PRO_PLAN_ID || "";
+const razorpayEnabled = Boolean(RAZORPAY_KEY_ID && RAZORPAY_KEY_SECRET);
+
+/** Minimal Razorpay REST helper — Basic-auth fetch, no SDK dependency. */
+async function rzp(pathname: string, method: "GET" | "POST" = "GET", body?: unknown): Promise<any> {
+  const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
+  const res = await fetch(`https://api.razorpay.com${pathname}`, {
+    method,
+    headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const data: any = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error?.description || `Razorpay ${pathname} → ${res.status}`);
+  return data;
+}
+
+// Monthly-plan cache: label|amount|currency -> plan_... (created at most once per process).
+const rzpPlanCache: Record<string, string> = {};
+async function ensureMonthlyPlan(label: string, amount: number): Promise<string> {
+  if (RAZORPAY_PRO_PLAN_ID) return RAZORPAY_PRO_PLAN_ID;
+  const key = `${label}|${amount}|${RAZORPAY_CURRENCY}`;
+  if (!rzpPlanCache[key]) {
+    const p = await rzp("/v1/plans", "POST", {
+      period: "monthly",
+      interval: 1,
+      item: { name: label, amount, currency: RAZORPAY_CURRENCY },
+    });
+    rzpPlanCache[key] = p.id;
+  }
+  return rzpPlanCache[key];
+}
 
 const PLANS: Record<string, { label: string; amount: number; mode: "subscription" | "payment"; interval?: "month" }> = {
   pro: { label: "Tickrr Pro", amount: 1900, mode: "subscription", interval: "month" },
@@ -543,10 +584,11 @@ Produce a prediction-market intelligence report on this market. Explain what the
     }
   });
 
-  // Billing: plans + Stripe Checkout (intel-only product; hosted checkout = no card data here).
+  // Billing: plans + Razorpay hosted checkout (intel-only product; hosted page = no card data here).
   app.get("/api/plans", (_req, res) => {
     res.json({
-      stripe: Boolean(stripe),
+      razorpay: razorpayEnabled,
+      currency: RAZORPAY_CURRENCY,
       plans: Object.entries(PLANS).map(([id, p]) => ({
         id, label: p.label, amount: p.amount, mode: p.mode, interval: p.interval,
       })),
@@ -557,39 +599,49 @@ Produce a prediction-market intelligence report on this market. Explain what the
     const { plan } = req.body || {};
     const cfg = PLANS[plan];
     if (!cfg) return res.status(400).json({ error: "Unknown plan." });
-    if (!stripe) {
-      // No key configured → demo mode: the client unlocks Pro locally.
+    if (!razorpayEnabled) {
+      // No keys configured → demo mode: the client unlocks Pro locally.
       return res.json({ demo: true });
     }
     try {
-      const session = await stripe.checkout.sessions.create({
-        mode: cfg.mode,
-        line_items: [{
-          quantity: 1,
-          price_data: {
-            currency: "usd",
-            unit_amount: cfg.amount,
-            product_data: { name: cfg.label },
-            ...(cfg.mode === "subscription" ? { recurring: { interval: cfg.interval || "month" } } : {}),
-          } as any,
-        }],
-        success_url: `${APP_URL}/?pro=1&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${APP_URL}/?pro=0`,
-        allow_promotion_codes: true,
+      if (cfg.mode === "subscription") {
+        // Pro monthly → Razorpay Subscription (hosted page via short_url).
+        const planId = await ensureMonthlyPlan(cfg.label, cfg.amount);
+        const sub = await rzp("/v1/subscriptions", "POST", {
+          plan_id: planId,
+          total_count: 120, // billing cycles cap (10 years); cancellable anytime
+          customer_notify: 1,
+          notes: { tickrr_plan: plan },
+        });
+        return res.json({ url: sub.short_url, id: sub.id });
+      }
+      // Founder / event passes → one-time Payment Link that bounces back to ?pro=1.
+      const link = await rzp("/v1/payment_links", "POST", {
+        amount: cfg.amount,
+        currency: RAZORPAY_CURRENCY,
+        description: cfg.label,
+        callback_url: `${APP_URL}/?pro=1`,
+        callback_method: "get",
+        notes: { tickrr_plan: plan },
       });
-      res.json({ url: session.url });
+      res.json({ url: link.short_url, id: link.id });
     } catch (error: any) {
       console.error("[TICKRR] Checkout failed:", error);
       res.status(500).json({ error: error?.message || "Checkout failed." });
     }
   });
 
+  // Verify a checkout: works for both payment links (plink_...) and subscriptions (sub_...).
   app.get("/api/checkout/session", async (req, res) => {
-    const id = String(req.query.session_id || "");
-    if (!stripe || !id) return res.json({ paid: false });
+    const id = String(req.query.id || req.query.session_id || "");
+    if (!razorpayEnabled || !id) return res.json({ paid: false });
     try {
-      const s = await stripe.checkout.sessions.retrieve(id);
-      res.json({ paid: s.payment_status === "paid" || s.status === "complete" });
+      if (id.startsWith("sub_")) {
+        const s = await rzp(`/v1/subscriptions/${id}`);
+        return res.json({ paid: ["authenticated", "active", "completed"].includes(s.status) });
+      }
+      const l = await rzp(`/v1/payment_links/${id}`);
+      res.json({ paid: l.status === "paid" });
     } catch {
       res.json({ paid: false });
     }
