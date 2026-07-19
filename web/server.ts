@@ -3,6 +3,7 @@ import path from "path";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 import { Draft, getGrowthStore } from "./growthStore";
+import { getWaitlistStore, WaitlistEntry } from "./waitlistStore";
 import { captureAndHost, MEDIA_MODE, Media } from "./media";
 import { getBlogStore } from "./blogStore";
 import { SEED_POSTS, BlogPost } from "./content";
@@ -584,7 +585,47 @@ Produce a prediction-market intelligence report on this market. Explain what the
     }
   });
 
+  // Pro waitlist (pre-billing phase): capture real intent + the usage that preceded it.
+  // Google stack only — Firestore on Cloud Run, file JSON locally. One row per email.
+  app.post("/api/waitlist", async (req, res) => {
+    const { email, name, uid, intent, reason, usage, source } = req.body || {};
+    const em = String(email || "").trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) {
+      return res.status(400).json({ error: "A valid email is required." });
+    }
+    try {
+      const entry: WaitlistEntry = {
+        id: `wl_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        createdAt: new Date().toISOString(),
+        email: em,
+        name: name ? String(name).slice(0, 120) : null,
+        uid: uid ? String(uid).slice(0, 128) : null,
+        intent: String(intent || "pro").slice(0, 40),
+        reason: reason ? String(reason).slice(0, 200) : null,
+        source: source ? String(source).slice(0, 200) : null,
+        usage: usage && typeof usage === "object" ? usage : null,
+      };
+      const store = await getWaitlistStore();
+      await store.add(entry);
+      res.json({ ok: true, store: store.kind });
+    } catch (e: any) {
+      console.error("[TICKRR] waitlist add failed:", e);
+      res.status(500).json({ error: e?.message || "Waitlist unavailable." });
+    }
+  });
+
+  // Ops peek: how many have raised their hand (no PII returned).
+  app.get("/api/waitlist/health", async (_req, res) => {
+    try {
+      const store = await getWaitlistStore();
+      res.json({ store: store.kind, count: await store.count() });
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || "health failed" });
+    }
+  });
+
   // Billing: plans + Razorpay hosted checkout (intel-only product; hosted page = no card data here).
+  // NOTE: dormant during the waitlist phase — the UI routes all upgrade intents to /api/waitlist.
   app.get("/api/plans", (_req, res) => {
     res.json({
       razorpay: razorpayEnabled,

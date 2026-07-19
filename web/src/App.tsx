@@ -20,10 +20,11 @@ import PlayerDossier from "./components/PlayerDossier";
 import Home from "./components/Home";
 import GrowthConsole from "./components/GrowthConsole";
 import ThemeToggle from "./components/ThemeToggle";
-import UpgradeModal from "./components/UpgradeModal";
+import WaitlistModal from "./components/WaitlistModal";
 import MySpace from "./components/MySpace";
 import CatalystBar from "./components/CatalystBar";
-import { isPremium, setPremium, goPro } from "./lib/premium";
+import { isPremium, setPremium } from "./lib/premium";
+import { setQuotaUser, LIMITS } from "./lib/quota";
 import { signInWithGoogle, signOutUser, subscribeAuth, AuthUser } from "./lib/auth";
 import { authEnabled } from "./lib/firebase";
 import { syncFavoritesFromCloud } from "./lib/watchlist";
@@ -35,16 +36,18 @@ export default function App() {
   const [sportFilter, setSportFilter] = useState<string | null>(null);
   const [delibOpen, setDelibOpen] = useState(false);
   const [growthOpen, setGrowthOpen] = useState(false);
-  const [paywallOpen, setPaywallOpen] = useState(false);
+  // Waitlist phase: every upgrade intent routes here (no live billing yet).
+  const [waitlist, setWaitlist] = useState<{ open: boolean; reason?: string; intent?: string }>({ open: false });
   const [mySpaceOpen, setMySpaceOpen] = useState(false);
   const [leagueScope, setLeagueScope] = useState<string>("all"); // global event scope
   const [entered, setEntered] = useState(false);
   const [pro, setPro] = useState(isPremium());
   const [user, setUser] = useState<AuthUser | null>(null);
 
-  // Track sign-in; on sign-in, merge the cloud watchlist with local.
+  // Track sign-in; on sign-in, merge the cloud watchlist with local + scope quotas to the uid.
   useEffect(() => subscribeAuth((u) => {
     setUser(u);
+    setQuotaUser(u?.uid ?? null);
     if (u) void syncFavoritesFromCloud();
   }), []);
 
@@ -82,16 +85,10 @@ export default function App() {
     setEntered(true);
   };
 
-  const handleGoPro = async (plan: string) => {
-    const unlocked = await goPro(plan);  // redirects to Razorpay, or unlocks in demo mode
-    if (unlocked) { setPro(true); enterTerminal(); }
-  };
-
-  // In-terminal upgrade (from the paywall modal): unlock without leaving the terminal.
-  const handleUpgrade = async (plan: string) => {
-    const unlocked = await goPro(plan);
-    if (unlocked) { setPro(true); setPaywallOpen(false); }
-  };
+  // Waitlist phase — every upgrade intent captures interest instead of charging.
+  const openWaitlist = (intent?: string, reason?: string) => setWaitlist({ open: true, intent, reason });
+  const handleGoPro = (plan: string) => openWaitlist(plan);
+  const quotaReason = `You've used your ${LIMITS.gemini} free Gemini queries. Pro removes the limits — join the waitlist for first access at launch pricing.`;
 
   // Dynamic athlete/team provisioner for on-the-fly terminal listing!
   const handleCustomAdd = (name: string) => {
@@ -123,7 +120,12 @@ export default function App() {
   };
 
   if (!entered) {
-    return <Home onEnter={enterTerminal} onGoPro={handleGoPro} premium={pro} />;
+    return (
+      <>
+        <Home onEnter={enterTerminal} onGoPro={handleGoPro} premium={pro} />
+        <WaitlistModal open={waitlist.open} onClose={() => setWaitlist({ open: false })} user={user} reason={waitlist.reason} intent={waitlist.intent} />
+      </>
+    );
   }
 
   // Global league scope drives the ticker, the Dislocation Radar, and the screener chips.
@@ -256,7 +258,7 @@ export default function App() {
 
           {/* AI-Powered Intel Intelligence & Custom Query Station (scrolls internally) */}
           <div className="h-[420px] shrink-0">
-            <IntelligencePanel entity={activeEntity} premium={pro} onUpgrade={() => setPaywallOpen(true)} />
+            <IntelligencePanel entity={activeEntity} premium={pro} user={user} onUpgrade={() => openWaitlist("pro", quotaReason)} />
           </div>
         </div>
       </main>
@@ -283,9 +285,16 @@ export default function App() {
         </div>
       </footer>
 
-      <DeliberationRoom entity={activeEntity} open={delibOpen} onClose={() => setDelibOpen(false)} premium={pro} onUnlocked={() => setPro(true)} />
+      <DeliberationRoom
+        entity={activeEntity}
+        open={delibOpen}
+        onClose={() => setDelibOpen(false)}
+        premium={pro}
+        user={user}
+        onWaitlist={() => openWaitlist("pro", "Your free deliberation round is complete. Pro opens unlimited rounds — join the waitlist for first access.")}
+      />
       <GrowthConsole open={growthOpen} onClose={() => setGrowthOpen(false)} />
-      <UpgradeModal open={paywallOpen} onClose={() => setPaywallOpen(false)} onSelect={handleUpgrade} />
+      <WaitlistModal open={waitlist.open} onClose={() => setWaitlist({ open: false })} user={user} reason={waitlist.reason} intent={waitlist.intent} />
       <MySpace open={mySpaceOpen} onClose={() => setMySpaceOpen(false)} entities={entities} onSelect={(e) => setActiveEntity(e)} user={user} />
     </div>
   );

@@ -37,7 +37,7 @@ const PLANS = [
   },
   {
     id: "pro", name: "Pro", price: "$19", cadence: "/ month", highlight: true,
-    hook: "Get the edge.", cta: "Unlock Pro", note: "Less than one mispriced bet",
+    hook: "Get the edge.", cta: "Join the Pro waitlist", note: "Launching soon — waitlist locks launch pricing",
     perks: [
       "Everything in Free",
       "Deliberation Room — 2 AI experts debate your call",
@@ -48,7 +48,7 @@ const PLANS = [
   },
   {
     id: "founder", name: "Founder's Pass", price: "$99", cadence: "once · lifetime", highlight: false,
-    hook: "Own it forever.", cta: "Become a Founder", note: "One-time — never pay again",
+    hook: "Own it forever.", cta: "Join the Founder waitlist", note: "Limited founding cohort — waitlist gets first claim",
     perks: ["Everything in Pro — for life", "≈5 months of Pro, paid once", "Founding-member badge", "Locked launch pricing + roadmap input"],
   },
 ];
@@ -206,7 +206,7 @@ export default function Home({ onEnter, onGoPro, premium }: Props) {
               <Ticket className="w-3.5 h-3.5" /> EVENT PASSES
             </div>
             <p className="text-center text-[12px] text-[#D1D4DC]/50 font-sans mb-4">
-              Not ready to subscribe? Unlock Pro for a single spectacle — pay once, ride the whole event.
+              Rather unlock a single spectacle? Raise your hand — event passes ship at Pro launch, waitlist first.
             </p>
             <div className="flex flex-wrap justify-center gap-2">
               {passes.map((p) => (
@@ -223,7 +223,7 @@ export default function Home({ onEnter, onGoPro, premium }: Props) {
           </div>
         )}
         <p className="text-center text-[10px] text-[#D1D4DC]/30 font-mono mt-6">
-          Secure checkout via Razorpay. Cancel anytime. Prices in USD.
+          Pro launches soon — no card, no charge today. Waitlist members get first access with launch pricing locked. Prices in USD.
         </p>
         </div>
       </section>
