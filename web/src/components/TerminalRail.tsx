@@ -94,6 +94,62 @@ export default function TerminalRail({
   onClose,
   filteredCount,
 }: Props) {
+  const bodyProps = {
+    entities,
+    activeEntity,
+    onSelectEntity,
+    filters,
+    onFiltersChange,
+    onClose,
+    filteredCount,
+  };
+
+  // Desktop + mobile each need their own instance (a single element can't mount twice).
+  return (
+    <>
+      <aside className="hidden lg:flex lg:flex-col w-[300px] xl:w-[320px] shrink-0 h-full sticky top-0 self-stretch">
+        <RailBody {...bodyProps} />
+      </aside>
+
+      <div
+        className={`lg:hidden fixed inset-0 z-50 transition ${open ? "pointer-events-auto" : "pointer-events-none"}`}
+        aria-hidden={!open}
+      >
+        <div
+          className={`absolute inset-0 bg-black/60 transition-opacity ${open ? "opacity-100" : "opacity-0"}`}
+          onClick={onClose}
+        />
+        <div
+          className={`absolute inset-y-0 left-0 w-[min(100%,320px)] shadow-2xl transition-transform duration-300 ${
+            open ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          <RailBody {...bodyProps} />
+        </div>
+      </div>
+    </>
+  );
+}
+
+interface RailBodyProps {
+  entities: SportsEntity[];
+  activeEntity: SportsEntity;
+  onSelectEntity: (e: SportsEntity) => void;
+  filters: RailFilters;
+  onFiltersChange: (f: RailFilters) => void;
+  onClose?: () => void;
+  filteredCount: number;
+}
+
+function RailBody({
+  entities,
+  activeEntity,
+  onSelectEntity,
+  filters,
+  onFiltersChange,
+  onClose,
+  filteredCount,
+}: RailBodyProps) {
   const [favorites, setFavorites] = useState<Set<string>>(() => getFavorites());
   const [filtersExpanded, setFiltersExpanded] = useState(true);
 
@@ -123,9 +179,8 @@ export default function TerminalRail({
         : "border-[#2D333B] text-[#D1D4DC]/60 hover:text-white hover:border-[#FF9900]/40"
     }`;
 
-  const body = (
+  return (
     <div className="flex flex-col h-full bg-[#0B0E11] border-r border-[#2D333B] overflow-hidden">
-      {/* Rail header */}
       <div className="shrink-0 bg-[#050608] border-b border-[#2D333B] px-3 py-2.5 flex items-center justify-between select-none">
         <div className="flex items-center gap-2">
           <SlidersHorizontal className="w-3.5 h-3.5 text-[#FF9900]" />
@@ -143,7 +198,6 @@ export default function TerminalRail({
         </div>
       </div>
 
-      {/* Search */}
       <div className="shrink-0 p-2 border-b border-[#2D333B]">
         <div className="relative">
           <input
@@ -157,7 +211,6 @@ export default function TerminalRail({
         </div>
       </div>
 
-      {/* Collapsible filter stack */}
       <div className="shrink-0 border-b border-[#2D333B]">
         <button
           type="button"
@@ -170,8 +223,7 @@ export default function TerminalRail({
 
         {filtersExpanded && (
           <div className="px-2 pb-2.5 flex flex-col gap-2.5 max-h-[42vh] overflow-y-auto">
-            {/* League universe */}
-            {(leagues.length > 0) && (
+            {leagues.length > 0 && (
               <div>
                 <div className="text-[9px] font-mono text-[#D1D4DC]/35 mb-1 tracking-wider px-0.5">UNIVERSE</div>
                 <div className="flex flex-wrap gap-1">
@@ -185,7 +237,6 @@ export default function TerminalRail({
               </div>
             )}
 
-            {/* Sport */}
             {sportsPresent.length > 0 && (
               <div>
                 <div className="text-[9px] font-mono text-[#D1D4DC]/35 mb-1 tracking-wider px-0.5">SPORT</div>
@@ -200,7 +251,6 @@ export default function TerminalRail({
               </div>
             )}
 
-            {/* Category */}
             {hasAthletes && (
               <div>
                 <div className="text-[9px] font-mono text-[#D1D4DC]/35 mb-1 tracking-wider px-0.5">TYPE</div>
@@ -219,7 +269,6 @@ export default function TerminalRail({
               </div>
             )}
 
-            {/* Quality */}
             <div>
               <div className="text-[9px] font-mono text-[#D1D4DC]/35 mb-1 tracking-wider px-0.5">
                 <InfoTip metric="quality">DECISION QUALITY</InfoTip>
@@ -238,7 +287,6 @@ export default function TerminalRail({
               </div>
             </div>
 
-            {/* Gap slider */}
             <div>
               <div className="flex items-center justify-between text-[9px] font-mono text-[#D1D4DC]/35 mb-1 tracking-wider px-0.5">
                 <InfoTip metric="crossVenue">MIN GAP (pp)</InfoTip>
@@ -255,7 +303,6 @@ export default function TerminalRail({
               />
             </div>
 
-            {/* Toggles */}
             <div className="flex flex-wrap gap-1">
               <button
                 type="button"
@@ -287,7 +334,6 @@ export default function TerminalRail({
         )}
       </div>
 
-      {/* Market directory */}
       <div className="flex-1 min-h-0 overflow-y-auto">
         {filtered.length === 0 ? (
           <div className="py-10 px-4 text-center text-[#D1D4DC]/30 font-mono text-[11px]">
@@ -376,33 +422,5 @@ export default function TerminalRail({
         )}
       </div>
     </div>
-  );
-
-  // Desktop: always visible column. Mobile: slide-over drawer.
-  return (
-    <>
-      {/* Desktop rail */}
-      <aside className="hidden lg:flex lg:flex-col w-[300px] xl:w-[320px] shrink-0 h-full sticky top-0 self-stretch">
-        {body}
-      </aside>
-
-      {/* Mobile drawer */}
-      <div
-        className={`lg:hidden fixed inset-0 z-50 transition ${open ? "pointer-events-auto" : "pointer-events-none"}`}
-        aria-hidden={!open}
-      >
-        <div
-          className={`absolute inset-0 bg-black/60 transition-opacity ${open ? "opacity-100" : "opacity-0"}`}
-          onClick={onClose}
-        />
-        <div
-          className={`absolute inset-y-0 left-0 w-[min(100%,320px)] shadow-2xl transition-transform duration-300 ${
-            open ? "translate-x-0" : "-translate-x-full"
-          }`}
-        >
-          {body}
-        </div>
-      </div>
-    </>
   );
 }
