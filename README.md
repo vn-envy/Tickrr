@@ -65,9 +65,15 @@ intelligence panel** that explains every move with grounded sources.
 
 ---
 
-## The autonomous growth engine
+## The autonomous growth engine (removed from prod — opt-in)
 
-Tickrr markets itself with a **human-in-the-loop** agent. On a schedule it drafts posts from live
+> **Not deployed in production.** The growth agent is disabled by default: its entire
+> `/api/growth/*` surface only mounts when `GROWTH_ENABLED=1` is set, `deploy.sh` no longer
+> ships its credentials or Cloud Scheduler job (and tears down the legacy `tickrr-autodraft`
+> job), and the Growth Console has been removed from the terminal UI. Run it locally or on a
+> separate private ops deployment if you want it.
+
+Tickrr can market itself with a **human-in-the-loop** agent. On a schedule it drafts posts from live
 market signals; you approve with one tap; approved posts auto-publish — with a **branded video or
 screenshot of the live terminal attached**.
 
@@ -136,7 +142,8 @@ Everything runs in free/demo mode without keys; see `web/.env.example` for optio
 
 **Backend** — `GET /api/markets`, `/api/dislocations`, `/api/history`, `/api/player`, `/healthz`.
 **Web** — `POST /api/insights`, `/api/deliberate`; billing `GET /api/plans`, `POST /api/checkout`;
-growth `GET /api/growth/{drafts,health,buffer/channels}`, `POST /api/growth/{generate,cron,drafts/:id/:action}`.
+growth (opt-in, `GROWTH_ENABLED=1` only — absent in prod) `GET /api/growth/{drafts,health,buffer/channels}`,
+`POST /api/growth/{generate,cron,drafts/:id/:action}`.
 
 ---
 

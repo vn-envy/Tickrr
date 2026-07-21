@@ -85,6 +85,9 @@ const BUFFER_ACCESS_TOKEN = process.env.BUFFER_ACCESS_TOKEN || "";
 const BUFFER_CHANNEL_IDS = (process.env.BUFFER_CHANNEL_IDS || "").split(",").map((s) => s.trim()).filter(Boolean);
 // Scheduler: a shared secret guards the public cron trigger (Cloud Scheduler hits it over HTTP).
 const GROWTH_CRON_SECRET = process.env.GROWTH_CRON_SECRET || "";
+// Kill switch: the growth agent is OFF unless explicitly enabled. Production runs without
+// GROWTH_ENABLED, so none of the /api/growth/* surface (or its cron/autodraft) exists there.
+const GROWTH_ENABLED = process.env.GROWTH_ENABLED === "1";
 // Founder ping: a Discord webhook to notify you when new drafts land in the approval queue.
 const GROWTH_NOTIFY_WEBHOOK = process.env.GROWTH_NOTIFY_WEBHOOK || "";
 
@@ -689,6 +692,9 @@ Produce a prediction-market intelligence report on this market. Explain what the
   });
 
   // Growth engine: approval queue + generate + approve/reject (free: Discord + Bluesky).
+  // REMOVED FROM PROD: the whole surface only mounts when GROWTH_ENABLED=1 is set explicitly
+  // (local ops / a private ops deployment). Without it, /api/growth/* does not exist.
+  if (GROWTH_ENABLED) {
   // Status endpoint — which store is active (firestore/file) + channel/AI wiring. Handy for
   // confirming durable Firestore persistence on Cloud Run and for the ops demo.
   app.get("/api/growth/health", async (_req, res) => {
@@ -791,6 +797,7 @@ Produce a prediction-market intelligence report on this market. Explain what the
     }, hours * 3600 * 1000);
     console.log(`[TICKRR] Growth auto-draft enabled every ${hours}h (approval required to publish).`);
   }
+  } // end GROWTH_ENABLED gate
 
   // Proxy read-only market data from the FastAPI backend so the browser stays same-origin
   // (no CORS, no compile-time backend URL). MARKET_API is a runtime env var.

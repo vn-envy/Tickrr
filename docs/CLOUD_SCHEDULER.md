@@ -1,5 +1,10 @@
 # Autonomous drafting on a schedule (Google Cloud Scheduler)
 
+> **Removed from prod.** The growth agent no longer runs on the production deployment:
+> `deploy.sh` doesn't create the `tickrr-autodraft` job anymore (it deletes a legacy one if
+> found), and the `/api/growth/*` endpoints only exist when the service is started with
+> `GROWTH_ENABLED=1`. Everything below applies to local or private ops deployments only.
+
 The growth loop can run itself: on a cadence it **drafts** posts from Tickrr's live market
 signals and **pings you** — you only open the Growth Console and approve. Nothing publishes
 without your approval. This is the "only needing me for approvals" loop.
