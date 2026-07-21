@@ -44,6 +44,15 @@
   border: 1px solid rgba(45, 51, 59, 0.6);
 }
 
+/* Gentle mount fade for panels/drawers/tooltips */
+@keyframes tickrr-fade-in {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: tickrr-fade-in 0.18s ease-out;
+}
+
 /* LED blinking effect */
 @keyframes blink {
   0%, 100% { opacity: 1; }
@@ -68,6 +77,48 @@
   pointer-events: none;
   z-index: 10;
 }
+
+/* Command-rail range sliders — terminal-styled (thin track, amber square thumb) */
+.tickrr-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 14px;
+  background: transparent;
+  cursor: pointer;
+}
+.tickrr-range::-webkit-slider-runnable-track {
+  height: 3px;
+  background: #2d333b;
+  border-radius: 2px;
+}
+.tickrr-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 11px;
+  height: 11px;
+  margin-top: -4px;
+  background: #ff9900;
+  border: 1px solid #050608;
+  border-radius: 2px;
+  box-shadow: 0 0 6px rgba(255, 153, 0, 0.5);
+}
+.tickrr-range::-moz-range-track {
+  height: 3px;
+  background: #2d333b;
+  border-radius: 2px;
+}
+.tickrr-range::-moz-range-thumb {
+  width: 11px;
+  height: 11px;
+  background: #ff9900;
+  border: 1px solid #050608;
+  border-radius: 2px;
+  box-shadow: 0 0 6px rgba(255, 153, 0, 0.5);
+}
+html.theme-light .tickrr-range::-webkit-slider-runnable-track { background: #dcdce1; }
+html.theme-light .tickrr-range::-webkit-slider-thumb { background: #111113; border-color: #ffffff; box-shadow: none; }
+html.theme-light .tickrr-range::-moz-range-track { background: #dcdce1; }
+html.theme-light .tickrr-range::-moz-range-thumb { background: #111113; border-color: #ffffff; box-shadow: none; }
 
 /* Hero readability fade — solid behind the headline, clearing toward the globe on the right.
    Theme-controlled so text stays legible in both dark and light. */

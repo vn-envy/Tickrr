@@ -74,4 +74,28 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     title: "Edge vs books",
     tip: "Polymarket's implied probability minus the sportsbook consensus (falls back to the Kalshi gap when books don't price it), in pp. Why it matters: a persistent gap vs the real-money bookmaker crowd is the cleanest value signal on the board.",
   },
+  pulse: {
+    title: "Market pulse",
+    tip: "Aggregate intelligence over every market currently in scope on the Command Rail. Why it matters: it reads the whole board at once — breadth, distribution, movers and quality — so you see the regime, not just one price.",
+  },
+  breadth: {
+    title: "Conviction breadth",
+    tip: "How many markets in scope gained vs lost implied probability over the last week. Why it matters: broad one-sided movement signals a regime shift; a split board means the action is idiosyncratic.",
+  },
+  distribution: {
+    title: "Probability distribution",
+    tip: "A histogram of where the in-scope implied probabilities sit, from 0% to 100%. Why it matters: mass near the edges = settled outcomes; mass in the middle = genuinely contested markets where information has the most value.",
+  },
+  movers: {
+    title: "Top movers (1W)",
+    tip: "The markets whose implied probability moved the most over the last week, in pp. Why it matters: fast repricing is where news, momentum and overreaction live — the first place to look for a dislocation.",
+  },
+  volumeLeaders: {
+    title: "Volume leaders",
+    tip: "The most-traded markets in scope. Why it matters: volume is where price discovery happens — heavy-volume prices are the hardest to argue with, and sudden volume is itself a signal.",
+  },
+  qualityMix: {
+    title: "Board quality mix",
+    tip: "The share of in-scope markets rated good / fair / thin for decision quality (liquidity + spread). Why it matters: a thin board means quoted prices are fragile — trust them less.",
+  },
 };
