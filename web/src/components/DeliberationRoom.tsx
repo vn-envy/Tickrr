@@ -169,7 +169,7 @@ export default function DeliberationRoom({ entity, open, onClose, premium = fals
               experts — one argues your stance, one corrects for reality. Facts only, with sources.
             </p>
             <button
-              onClick={() => void signInWithGoogle()}
+              onClick={() => void signInWithGoogle().catch((error) => console.warn("[Tickrr] sign-in failed:", error))}
               className="cursor-pointer mt-2 bg-[#00FF66] hover:bg-[#00FF66]/90 text-black font-black text-xs px-5 py-2 rounded tracking-wider transition terminal-glow-green flex items-center gap-2"
             >
               <LogIn className="w-4 h-4" /> SIGN IN WITH GOOGLE

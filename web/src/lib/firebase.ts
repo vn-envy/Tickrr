@@ -4,7 +4,7 @@
  * layer is inert — the app runs exactly as before (local-only watchlist, no sign-in UI).
  */
 import { initializeApp, type FirebaseApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, type Auth } from "firebase/auth";
+import { browserLocalPersistence, getAuth, GoogleAuthProvider, setPersistence, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 
 const cfg = {
@@ -21,9 +21,13 @@ let app: FirebaseApp | null = null;
 export let auth: Auth | null = null;
 export let db: Firestore | null = null;
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: "select_account" });
+
+export let authPersistenceReady: Promise<void> = Promise.resolve();
 
 if (authEnabled) {
   app = initializeApp(cfg as Record<string, string>);
   auth = getAuth(app);
+  authPersistenceReady = setPersistence(auth, browserLocalPersistence);
   db = getFirestore(app);
 }

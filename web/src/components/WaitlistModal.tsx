@@ -149,7 +149,7 @@ export default function WaitlistModal({ open, onClose, user, reason, intent }: P
 
               {authEnabled && !user && (
                 <button
-                  onClick={() => void signInWithGoogle()}
+                  onClick={() => void signInWithGoogle().catch((error) => console.warn("[Tickrr] sign-in failed:", error))}
                   className="cursor-pointer mt-2 w-full border border-[#2D333B] hover:border-[#00FF66]/50 text-[#D1D4DC] hover:text-[#00FF66] font-bold text-[10px] px-5 py-2 rounded transition flex items-center justify-center gap-1.5"
                 >
                   <LogIn className="w-3.5 h-3.5" /> OR SIGN IN WITH GOOGLE TO AUTOFILL
