@@ -803,6 +803,11 @@ Produce a prediction-market intelligence report on this market. Explain what the
     console.log(`[TICKRR] Growth auto-draft enabled every ${hours}h (approval required to publish).`);
   }
   }
+  if (!growthAgentEnabled) {
+    app.use("/api/growth", (_req, res) => {
+      res.status(404).json({ error: "Not found." });
+    });
+  }
 
   // Proxy read-only market data from the FastAPI backend so the browser stays same-origin
   // (no CORS, no compile-time backend URL). MARKET_API is a runtime env var.
