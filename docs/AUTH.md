@@ -53,3 +53,9 @@ gcloud run deploy tickrr-web --source web --region us-central1 --project tickrr-
 A **Sign in** button appears in the header. Signed-in users get their **watchlist synced across
 devices** (Firestore), and **My Space** shows "Synced · {name}". Signed-out users keep the local
 on-device watchlist. Sign-in is also the natural hook for future per-user alerts on saved markets.
+
+### Sign-in behaviour
+- Desktop: Google **popup** first.
+- If the popup is blocked (common on mobile / strict COOP hosts), Tickrr **falls back to redirect**.
+- Sign-out clears the session and re-scopes quotas to anonymous; click the account chip to sign out.
+- Authorized domains must include every host that serves the app (Cloud Run URL + custom domain).

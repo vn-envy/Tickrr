@@ -21,6 +21,7 @@ let app: FirebaseApp | null = null;
 export let auth: Auth | null = null;
 export let db: Firestore | null = null;
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: "select_account" });
 
 if (authEnabled) {
   app = initializeApp(cfg as Record<string, string>);

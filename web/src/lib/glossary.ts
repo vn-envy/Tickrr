@@ -50,6 +50,10 @@ export const GLOSSARY: Record<string, GlossaryEntry> = {
     title: "Fair-value range",
     tip: "Where the price should sit once spread and liquidity are accounted for. Why it matters: a price outside this band flags a possible dislocation.",
   },
+  fairValue: {
+    title: "Fair-value meter",
+    tip: "Where the live price sits relative to the bid/ask fair band. Why it matters: inside the band = consensus; outside = possible mispricing worth inspecting.",
+  },
   liveSignals: {
     title: "Live signals",
     tip: "Single-venue dislocations we flag in real time — momentum, overreaction, or thin-liquidity traps. Why it matters: these are the spots where a price may be mispriced or fragile.",

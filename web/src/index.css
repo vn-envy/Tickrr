@@ -172,4 +172,48 @@ html.theme-light .hero-fade {
   background: linear-gradient(to right, #FFFFFF 0%, rgba(255, 255, 255, 0.94) 34%, rgba(255, 255, 255, 0.55) 55%, rgba(255, 255, 255, 0) 80%);
 }
 
+/* Range inputs — Bloomberg control rail */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  background: #2d333b;
+  border-radius: 2px;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -4px;
+  border-radius: 2px;
+  background: #ff9900;
+  cursor: pointer;
+}
+input[type="range"]::-moz-range-track {
+  height: 4px;
+  background: #2d333b;
+  border-radius: 2px;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 2px;
+  background: #ff9900;
+  cursor: pointer;
+}
+
+/* Panel entrance — subtle presence for insight cards */
+@keyframes insight-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: insight-in 0.35s ease-out both;
+}
+
 
