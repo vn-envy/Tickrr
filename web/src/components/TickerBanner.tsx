@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from "react";
 import { SportsEntity } from "../types";
 
 interface TickerBannerProps {
@@ -12,41 +11,10 @@ interface TickerBannerProps {
 }
 
 export default function TickerBanner({ entities, onSelectEntity }: TickerBannerProps) {
-  const [liveEntities, setLiveEntities] = useState<SportsEntity[]>(entities);
-
-  // Resync when the (scoped) entities prop changes — otherwise the ticker freezes on seed data.
-  useEffect(() => {
-    setLiveEntities(entities);
-  }, [entities]);
-
-  // Simulate ultra-fast real-time sports feeds fluctuating slightly
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setLiveEntities((prev) =>
-        prev.map((item) => {
-          // 20% chance to fluctuate a value slightly
-          if (Math.random() > 0.2) return item;
-          
-          const fluctuation = (Math.random() - 0.5) * 0.15; // tiny change
-          const newValue = Number((item.value + fluctuation).toFixed(1));
-          const newChange = Number((item.change + fluctuation * 0.5).toFixed(2));
-
-          return {
-            ...item,
-            value: Math.max(10, Math.min(150, newValue)),
-            change: newChange,
-          };
-        })
-      );
-    }, 4000);
-
-    return () => clearInterval(interval);
-  }, []);
-
   // Double list to create seamless infinite scrolling marquee
-  const doubleList = [...liveEntities, ...liveEntities, ...liveEntities];
+  const doubleList = [...entities, ...entities, ...entities];
   // Duration scales with the list so a long board scrolls at a readable pace.
-  const speed = Math.max(90, liveEntities.length * 1.5);
+  const speed = Math.max(90, entities.length * 1.5);
 
   return (
     <div 

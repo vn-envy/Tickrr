@@ -43,6 +43,10 @@ function marketBody(entity: SportsEntity, extra: Record<string, unknown> = {}) {
     oneWeekChange: entity.oneWeekChange ?? entity.change,
     liquidityScore: entity.liquidityScore ?? entity.efficiency,
     decisionQuality: entity.decisionQuality,
+    venueGap: entity.divergence?.booksGapPP ?? entity.divergence?.gapPP,
+    dislocation: entity.dislocation?.label,
+    dislocationRationale: entity.dislocation?.rationale,
+    volume: entity.volume,
     ...extra,
   };
 }
@@ -56,7 +60,10 @@ export default function IntelligencePanel({ entity, premium = false, user, onUpg
   /** Gate a Gemini action: sign-in first (capture the user), then consume quota, else waitlist. */
   const gate = (): boolean => {
     if (premium) return true;
-    if (authEnabled && !user) { void signInWithGoogle(); return false; } // sign up before any free query
+    if (authEnabled && !user) {
+      void signInWithGoogle().catch((error) => console.warn("[Tickrr] sign-in failed:", error));
+      return false;
+    }
     if (!consumeGemini()) { onUpgrade?.(); return false; }
     setFreeLeft(geminiRemaining());
     return true;

@@ -19,20 +19,19 @@ const actionColor = (a?: string) =>
   a === "avoid" ? "#FF3B30" : a === "watch" ? "#FF9900" : "#00FF66";
 
 export default function DislocationBoard({ entities, onSelect }: Props) {
+  const gapFor = (e: SportsEntity) => e.divergence?.booksGapPP ?? e.divergence?.gapPP ?? 0;
   const flagged = entities
     .filter((e) => e.dislocation)
     .sort((a, b) => (b.dislocation!.severity) - (a.dislocation!.severity))
     .slice(0, 12);
 
   const gaps = entities
-    .filter((e) => e.divergence && Math.abs(e.divergence.gapPP) >= 1)
-    .sort((a, b) => Math.abs(b.divergence!.gapPP) - Math.abs(a.divergence!.gapPP))
+    .filter((e) => e.divergence && Math.abs(gapFor(e)) >= 1)
+    .sort((a, b) => Math.abs(gapFor(b)) - Math.abs(gapFor(a)))
     .slice(0, 12);
 
-  if (flagged.length === 0 && gaps.length === 0) return null;
-
   return (
-    <div className="px-3 md:px-4 pt-3 z-20">
+    <div className="z-20">
       <div className="bg-[#0B0E11]/40 border border-[#2D333B] rounded shadow-xl backdrop-blur-md overflow-hidden">
         {/* Header */}
         <div className="bg-[#0B0E11] border-b border-[#2D333B] px-3 py-2 flex items-center justify-between select-none">
@@ -49,6 +48,12 @@ export default function DislocationBoard({ entities, onSelect }: Props) {
             {flagged.length} SIGNALS · {gaps.length} CROSS-VENUE GAPS
           </span>
         </div>
+
+        {flagged.length === 0 && gaps.length === 0 && (
+          <div className="px-4 py-6 text-center font-mono text-[10px] text-[#D1D4DC]/40">
+            NO DISLOCATIONS IN THIS CONTROL SET · BROADEN THE LEFT-RAIL FILTERS
+          </div>
+        )}
 
         {/* Live signals row */}
         {flagged.length > 0 && (
@@ -87,12 +92,15 @@ export default function DislocationBoard({ entities, onSelect }: Props) {
         {gaps.length > 0 && (
           <div className="px-2 pb-2 border-t border-[#2D333B]/50">
             <div className="text-[9px] font-mono font-bold text-[#D1D4DC]/50 px-1 my-1 tracking-wider">
-              <InfoTip metric="crossVenue">◇ CROSS-VENUE GAPS · POLYMARKET vs KALSHI</InfoTip>
+              <InfoTip metric="crossVenue">◇ CROSS-VENUE GAPS · POLYMARKET vs MARKET</InfoTip>
             </div>
             <div className="flex gap-2 overflow-x-auto pb-1">
               {gaps.map((e) => {
                 const g = e.divergence!;
-                const pos = g.gapPP >= 0;
+                const gap = gapFor(e);
+                const comparison = g.kalshi != null ? "KALSHI" : "BOOKS";
+                const comparisonValue = g.kalshi ?? g.books;
+                const pos = gap >= 0;
                 return (
                   <div
                     key={`g-${e.id}`}
@@ -103,13 +111,13 @@ export default function DislocationBoard({ entities, onSelect }: Props) {
                         {e.ticker}
                       </button>
                       <span className={`font-mono text-[11px] font-black ${pos ? "text-[#00FF66]" : "text-[#FF3B30]"}`}>
-                        {pos ? "+" : ""}{g.gapPP.toFixed(1)}pp
+                        {pos ? "+" : ""}{gap.toFixed(1)}pp
                       </span>
                     </div>
                     <div className="font-mono text-[10px] text-[#D1D4DC]/70 flex items-center gap-2">
                       <span>POLY <span className="text-white font-bold">{g.polymarket.toFixed(1)}%</span></span>
                       <span className="text-[#D1D4DC]/30">vs</span>
-                      <span>KALSHI <span className="text-white font-bold">{g.kalshi.toFixed(1)}%</span></span>
+                      <span>{comparison} <span className="text-white font-bold">{comparisonValue?.toFixed(1) ?? "—"}%</span></span>
                     </div>
                     {g.url && (
                       <a

@@ -55,8 +55,11 @@ export default function TelemetryChart({ entity }: TelemetryChartProps) {
 
   const values = series.map((p) => p.v);
   const hasData = values.length > 0;
-  const maxVal = hasData ? Math.max(...values) * 1.05 + 0.001 : 1;
-  const minVal = hasData ? Math.min(...values) * 0.95 : 0;
+  const fairLow = entity.fairLow;
+  const fairHigh = entity.fairHigh;
+  const scaleValues = [...values, ...(fairLow != null ? [fairLow] : []), ...(fairHigh != null ? [fairHigh] : [])];
+  const maxVal = scaleValues.length ? Math.max(...scaleValues) * 1.05 + 0.001 : 1;
+  const minVal = scaleValues.length ? Math.max(0, Math.min(...scaleValues) * 0.95) : 0;
   const dataRange = maxVal - minVal || 1;
 
   const width = 600;
@@ -82,6 +85,7 @@ export default function TelemetryChart({ entity }: TelemetryChartProps) {
   const lastValue = hasData ? values[values.length - 1] : 0;
   const firstValue = hasData ? values[0] : 0;
   const netChange = lastValue - firstValue;
+  const yFor = (value: number) => height - paddingY - ((value - minVal) / dataRange) * (height - paddingY * 2);
 
   const fmtDate = (t: number) => (t > 100000 ? new Date(t * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : `t-${points.length - 1}`);
 
@@ -163,6 +167,22 @@ export default function TelemetryChart({ entity }: TelemetryChartProps) {
             })}
 
             <line x1={paddingX} y1={height - paddingY} x2={width - paddingX} y2={height - paddingY} stroke="#2D333B" strokeWidth="1" />
+
+            {fairLow != null && fairHigh != null && (
+              <g>
+                <rect
+                  x={paddingX}
+                  y={Math.min(yFor(fairHigh), yFor(fairLow))}
+                  width={width - paddingX * 2}
+                  height={Math.max(2, Math.abs(yFor(fairLow) - yFor(fairHigh)))}
+                  fill="#FF9900"
+                  fillOpacity="0.08"
+                />
+                <text x={width - paddingX - 3} y={Math.min(yFor(fairHigh), yFor(fairLow)) - 3} fill="#FF9900" fillOpacity="0.65" fontSize="8" fontFamily="JetBrains Mono" textAnchor="end">
+                  FAIR {fairLow.toFixed(1)}–{fairHigh.toFixed(1)}%
+                </text>
+              </g>
+            )}
 
             {/* Sparse X date labels */}
             {points.length > 0 && [0, Math.floor(points.length / 2), points.length - 1]

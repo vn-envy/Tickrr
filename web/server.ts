@@ -87,6 +87,10 @@ const BUFFER_CHANNEL_IDS = (process.env.BUFFER_CHANNEL_IDS || "").split(",").map
 const GROWTH_CRON_SECRET = process.env.GROWTH_CRON_SECRET || "";
 // Founder ping: a Discord webhook to notify you when new drafts land in the approval queue.
 const GROWTH_NOTIFY_WEBHOOK = process.env.GROWTH_NOTIFY_WEBHOOK || "";
+// The growth agent is an explicit local-only ops tool. It must never register routes or timers
+// in production, even if stale Cloud Run environment variables are still present.
+const growthAgentEnabled = process.env.NODE_ENV !== "production"
+  && process.env.ENABLE_GROWTH_AGENT === "1";
 
 interface Signal { market: string; label: string; prob: number; rationale: string; }
 
@@ -411,6 +415,10 @@ interface MarketContext {
   oneWeekChange?: number;
   liquidityScore?: number;
   decisionQuality?: string;
+  venueGap?: number;
+  dislocation?: string;
+  dislocationRationale?: string;
+  volume?: number;
   question?: string; // optional custom advisory question
 }
 
@@ -451,6 +459,8 @@ function ctxBlock(ctx: MarketContext): string {
     `Fair range: [${pct(ctx.fairLow)}, ${pct(ctx.fairHigh)}].`,
     `1-week move: ${pct(ctx.oneWeekChange)}.`,
     `Liquidity score: ${ctx.liquidityScore ?? "n/a"}/100. Spread cost: ${pct(ctx.spreadCost)}. Decision quality: ${ctx.decisionQuality ?? "n/a"}.`,
+    `Cross-venue gap: ${ctx.venueGap ?? "n/a"} percentage points. Volume: ${ctx.volume ?? "n/a"}.`,
+    `Detected signal: ${ctx.dislocation ?? "none"}${ctx.dislocationRationale ? ` — ${ctx.dislocationRationale}` : ""}.`,
   ].join(" ");
 }
 
@@ -688,7 +698,8 @@ Produce a prediction-market intelligence report on this market. Explain what the
     }
   });
 
-  // Growth engine: approval queue + generate + approve/reject (free: Discord + Bluesky).
+  if (growthAgentEnabled) {
+  // Growth engine: local-only approval queue + generate + approve/reject.
   // Status endpoint — which store is active (firestore/file) + channel/AI wiring. Handy for
   // confirming durable Firestore persistence on Cloud Run and for the ops demo.
   app.get("/api/growth/health", async (_req, res) => {
@@ -791,6 +802,7 @@ Produce a prediction-market intelligence report on this market. Explain what the
     }, hours * 3600 * 1000);
     console.log(`[TICKRR] Growth auto-draft enabled every ${hours}h (approval required to publish).`);
   }
+  }
 
   // Proxy read-only market data from the FastAPI backend so the browser stays same-origin
   // (no CORS, no compile-time backend URL). MARKET_API is a runtime env var.
@@ -825,7 +837,7 @@ Produce a prediction-market intelligence report on this market. Explain what the
     catch (e: any) { res.status(500).json({ error: e?.message || "seo generate failed" }); }
   });
   app.post("/api/seo/cron", async (req, res) => {
-    const secret = process.env.SEO_CRON_SECRET || GROWTH_CRON_SECRET;
+    const secret = process.env.SEO_CRON_SECRET || "";
     if (!secret) return res.status(403).json({ error: "Cron disabled — set SEO_CRON_SECRET." });
     const key = req.get("x-cron-key") || String(req.query.key || "");
     if (key !== secret) return res.status(401).json({ error: "Unauthorized." });

@@ -15,7 +15,7 @@
  * never what to do about it.
  */
 import { SportsEntity } from "../types";
-import { GitCompareArrows } from "lucide-react";
+import { ExternalLink, GitCompareArrows } from "lucide-react";
 import InfoTip from "./InfoTip";
 
 interface Props {
@@ -33,7 +33,20 @@ export default function VenueStrip({ entity }: Props) {
   const hi = entity.fairHigh ?? poly;
 
   const marks = [poly, kalshi, books].filter((v): v is number => typeof v === "number");
-  if (marks.length < 2) return null; // single-venue market — nothing to compare
+  if (marks.length < 2) {
+    return (
+      <div className="bg-[#0B0E11]/40 border border-[#2D333B] rounded px-3 py-3 flex flex-wrap items-center gap-2">
+        <GitCompareArrows className="w-3.5 h-3.5 text-[#FF9900]" />
+        <span className="font-mono text-[10px] font-bold">SINGLE-VENUE MARKET · {poly.toFixed(1)}%</span>
+        <span className="text-[10px] text-[#D1D4DC]/40">Comparison will activate when a matching Kalshi or sportsbook quote is available.</span>
+        {entity.url && (
+          <a href={entity.url} target="_blank" rel="noreferrer" className="ml-auto inline-flex items-center gap-1 text-[9px] text-[#FF9900] hover:underline">
+            OPEN MARKET <ExternalLink className="w-3 h-3" />
+          </a>
+        )}
+      </div>
+    );
+  }
 
   // Zoom the axis around the marks so small separations stay readable.
   const min = Math.max(0, Math.min(...marks, lo) - 6);

@@ -21,13 +21,13 @@ export default function CatalystBar({ scope = "all" }: { scope?: string }) {
     return () => { on = false; };
   }, [scope]);
 
-  if (!events.length) return null;
   return (
-    <div className="w-full bg-[#0B0E11]/60 border-b border-[#2D333B] px-4 py-1.5 flex items-center gap-4 overflow-x-auto text-[10px] font-mono select-none z-20">
+    <div className="w-full bg-[#0B0E11]/60 border border-[#2D333B] rounded px-4 py-2 flex items-center gap-4 overflow-x-auto text-[10px] font-mono select-none z-20">
       <div className="flex items-center gap-1.5 text-[#FF9900] font-bold tracking-widest shrink-0">
         <CalendarClock className="w-3 h-3" /> CATALYSTS
       </div>
       <div className="flex items-center gap-5">
+        {!events.length && <span className="text-[#D1D4DC]/35">NO SCHEDULED CATALYSTS · LIVE MARKET SIGNALS REMAIN ACTIVE</span>}
         {events.slice(0, 8).map((e, i) => {
           const d = daysTo(e.date);
           return (
