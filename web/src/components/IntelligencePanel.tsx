@@ -54,9 +54,14 @@ export default function IntelligencePanel({ entity, premium = false, user, onUpg
   useEffect(() => { setFreeLeft(geminiRemaining()); }, [user]);
 
   /** Gate a Gemini action: sign-in first (capture the user), then consume quota, else waitlist. */
-  const gate = (): boolean => {
+  const gate = async (): Promise<boolean> => {
     if (premium) return true;
-    if (authEnabled && !user) { void signInWithGoogle(); return false; } // sign up before any free query
+    if (authEnabled && !user) {
+      // Sign up before any free query. If sign-in completes we continue this same click —
+      // the user shouldn't have to press the button twice.
+      const signedIn = await signInWithGoogle();
+      if (!signedIn) return false;
+    }
     if (!consumeGemini()) { onUpgrade?.(); return false; }
     setFreeLeft(geminiRemaining());
     return true;
@@ -142,7 +147,7 @@ export default function IntelligencePanel({ entity, premium = false, user, onUpg
   // Deep, Google-Search-grounded analysis from the Gemini-backed server.
   // Free tier: sign in, then 5 queries total (analysis + advisory) before the waitlist gate.
   const handleExecuteAnalysis = async () => {
-    if (!gate()) return;
+    if (!(await gate())) return;
     setLoading(true);
     try {
       const response = await fetch("/api/insights", {
@@ -168,7 +173,7 @@ export default function IntelligencePanel({ entity, premium = false, user, onUpg
     e.preventDefault();
     const cleanQuery = customQuestion.trim();
     if (!cleanQuery) return;
-    if (!gate()) return;
+    if (!(await gate())) return;
 
     setAdvisoryChat((prev) => [...prev, { role: "user", text: cleanQuery }]);
     setCustomQuestion("");
@@ -253,12 +258,12 @@ export default function IntelligencePanel({ entity, premium = false, user, onUpg
         </button>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="flex border-b border-[#2D333B] bg-[#0B0E11]/40 font-mono text-[10px] p-1.5 gap-1 select-none">
+      {/* Navigation Tabs (scrollable on narrow screens) */}
+      <div className="flex border-b border-[#2D333B] bg-[#0B0E11]/40 font-mono text-[10px] p-1.5 gap-1 select-none overflow-x-auto whitespace-nowrap">
         <button
           onClick={() => setActiveTab("report")}
           type="button"
-          className={`cursor-pointer px-3 py-1 rounded flex items-center gap-1.5 transition ${
+          className={`cursor-pointer shrink-0 px-3 py-1 rounded flex items-center gap-1.5 transition ${
             activeTab === "report" ? "bg-[#1C2128] text-[#FF9900] font-bold border border-[#2D333B]" : "text-[#D1D4DC]/60 hover:text-white"
           }`}
         >
@@ -268,7 +273,7 @@ export default function IntelligencePanel({ entity, premium = false, user, onUpg
         <button
           onClick={() => setActiveTab("metrics")}
           type="button"
-          className={`cursor-pointer px-3 py-1 rounded flex items-center gap-1.5 transition ${
+          className={`cursor-pointer shrink-0 px-3 py-1 rounded flex items-center gap-1.5 transition ${
             activeTab === "metrics" ? "bg-[#1C2128] text-[#FF9900] font-bold border border-[#2D333B]" : "text-[#D1D4DC]/60 hover:text-white"
           }`}
         >
@@ -278,7 +283,7 @@ export default function IntelligencePanel({ entity, premium = false, user, onUpg
         <button
           onClick={() => setActiveTab("valuation")}
           type="button"
-          className={`cursor-pointer px-3 py-1 rounded flex items-center gap-1.5 transition ${
+          className={`cursor-pointer shrink-0 px-3 py-1 rounded flex items-center gap-1.5 transition ${
             activeTab === "valuation" ? "bg-[#1C2128] text-[#FF9900] font-bold border border-[#2D333B]" : "text-[#D1D4DC]/60 hover:text-white"
           }`}
         >
@@ -288,7 +293,7 @@ export default function IntelligencePanel({ entity, premium = false, user, onUpg
         <button
           onClick={() => setActiveTab("advisory")}
           type="button"
-          className={`cursor-pointer px-3 py-1 rounded flex items-center gap-1.5 transition ${
+          className={`cursor-pointer shrink-0 px-3 py-1 rounded flex items-center gap-1.5 transition ${
             activeTab === "advisory" ? "bg-[#1C2128] text-[#FF9900] font-bold border border-[#2D333B]" : "text-[#D1D4DC]/60 hover:text-white"
           }`}
         >
