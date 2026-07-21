@@ -14,11 +14,6 @@ WORKDIR /app
 ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
-# Headless Chromium for the media pipeline (real screenshots/recordings of the live app).
-# Adds image size; only exercised when GROWTH_MEDIA is enabled.
-RUN npx playwright install --with-deps chromium
 COPY --from=build /app/dist ./dist
-# Branding assets (fonts, optional audio track) used by the media pipeline's ffmpeg pass.
-COPY --from=build /app/assets ./assets
 # Cloud Run injects $PORT (default 8080); server.ts reads it.
 CMD ["node", "dist/server.cjs"]

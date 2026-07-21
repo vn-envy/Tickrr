@@ -33,3 +33,12 @@ jobs:
             --project "${{ vars.GCP_PROJECT_ID }}" \
             --region "${{ vars.GCP_REGION }}" \
             --quiet
+          gcloud run services update tickrr-web \
+            --project "${{ vars.GCP_PROJECT_ID }}" \
+            --region "${{ vars.GCP_REGION }}" \
+            --remove-env-vars "ENABLE_GROWTH_AGENT,GROWTH_AUTODRAFT,GROWTH_CRON_SECRET,GROWTH_NOTIFY_WEBHOOK,GROWTH_MEDIA,GROWTH_MEDIA_BUCKET,DISCORD_WEBHOOK_URL,BLUESKY_HANDLE,BLUESKY_APP_PASSWORD,BUFFER_ACCESS_TOKEN,BUFFER_CHANNEL_IDS" \
+            --quiet
+          gcloud scheduler jobs delete tickrr-autodraft \
+            --project "${{ vars.GCP_PROJECT_ID }}" \
+            --location "${{ vars.GCP_REGION }}" \
+            --quiet || true
