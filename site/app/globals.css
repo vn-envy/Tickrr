@@ -639,3 +639,8 @@ a:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+.intelligence-panel { background: #f2f7f4; padding: 20px; border-radius: 12px; }
+.signal-finding { padding: 14px 0; border-bottom: 1px solid #dce6df; }
+.signal-finding p { margin-top: 6px; }
+.signal-finding summary { cursor: pointer; font-weight: 600; }

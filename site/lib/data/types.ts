@@ -56,6 +56,7 @@ export type Comparison = {
   group: string;
 };
 export type Detail = {
+  intelligence?: import('./intelligence').Intelligence;
   market: Market;
   book: Book | null;
   execution: Execution | null;

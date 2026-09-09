@@ -1,3 +1,5 @@
+import { crossCheck } from './cross-check';
+import { findings } from '../data/intelligence';
 import type {
   Market,
   MarketFeed,
@@ -238,14 +240,17 @@ export async function getMarket(id: string): Promise<Market> {
   throw new ApiError(404, 'market_not_found', 'Market not found.');
 }
 export async function marketDetail(id: string, shares = 100): Promise<Detail> {
-  const cached = await readCache<Detail>(`detail:${id}`);
-  if (cached && Date.now() - cached.updatedAt < 15000)
-    return {
+  const cached = await readCache<Detail>(`detail:v2:${id}`);
+  if (cached && Date.now() - cached.updatedAt < 15000) {
+    const detail = {
       ...cached.value,
       execution: cached.value.book
         ? executeBuy(cached.value.book, shares)
         : null,
     };
+    if (detail.intelligence) detail.intelligence.findings = findings(detail);
+    return detail;
+  }
   const market = await getMarket(id);
   const detail: Detail = {
     market,
@@ -356,6 +361,12 @@ export async function marketDetail(id: string, shares = 100): Promise<Detail> {
       'Bookmaker fair probabilities remove margin; they are not an independently validated prediction. Settlement rules can differ between books.',
     );
   }
-  await saveCache(`detail:${id}`, detail);
+  const checked = await crossCheck(market);
+  detail.intelligence = {
+    version: '1',
+    ...checked,
+    findings: findings(detail),
+  };
+  await saveCache(`detail:v2:${id}`, detail);
   return detail;
 }

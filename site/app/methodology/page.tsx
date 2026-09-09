@@ -28,6 +28,25 @@ export default function Methodology() {
           same book. We do not interpret one outcome as a complete market.
           Different settlement rules can still make prices incomparable.
         </p>
+        <h2>Cross-platform crowd evidence</h2>
+        <p>
+          Related Manifold questions are play-money forecasts, not executable
+          cash prices. Tickrr searches a limited set of candidates and shows
+          question wording, timestamps and resolution criteria. Similar titles
+          do not establish equivalent contracts. Different deadlines, thresholds
+          and settlement rules can explain different probabilities. We do not
+          average these forecasts or infer arbitrage from them. Crowd results
+          are cached for up to five minutes; source update times are shown
+          separately. A missing match is not evidence of agreement.
+        </p>
+        <h2>Calculated signal checks</h2>
+        <p>
+          A 24-hour price change requires observations within two hours of both
+          now and the 24-hour baseline. Spread and depth checks require a valid,
+          fresh book. Bookmaker disagreement requires at least two distinct books
+          with complete margin-removed prices. These measurements describe
+          observed markets; they have not been validated as a forecasting model.
+        </p>
         <h2>AI research</h2>
         <p>
           Tickrr Pro uses OpenAI Luna to summarize server-retrieved evidence. It

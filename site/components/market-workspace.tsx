@@ -105,9 +105,13 @@ export default function MarketWorkspace({ signedIn }: { signedIn: boolean }) {
       history.replaceState(null, '', '/');
     }
   }, [feed, loadDetail]);
+  const [analysisSources, setAnalysisSources] = useState<
+    { title: string; url: string }[]
+  >([]);
   function openMarket(m: Market) {
     setSelected(m);
     setAnalysis('');
+    setAnalysisSources([]);
     setNotice('');
     void loadDetail(m, shares);
   }
@@ -186,12 +190,16 @@ export default function MarketWorkspace({ signedIn }: { signedIn: boolean }) {
     setAnalyzing(true);
     setNotice('');
     try {
-      const r = await api<{ text: string }>('/api/v1/analysis', {
+      const r = await api<{
+        text: string;
+        sources: { title: string; url: string }[];
+      }>('/api/v1/analysis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ marketId: selected.id }),
       });
       setAnalysis(r.text);
+      setAnalysisSources(r.sources);
     } catch (e) {
       setNotice((e as Error).message);
     } finally {
@@ -427,6 +435,67 @@ export default function MarketWorkspace({ signedIn }: { signedIn: boolean }) {
                     These details are out of date. Refresh to compare prices.
                   </p>
                 )}
+                {detail.intelligence && (
+                  <section className="detail-section intelligence-panel">
+                    <div className="eyebrow">TICKRR SIGNAL CHECK</div>
+                    <h3>What the evidence supports</h3>
+                    {detail.intelligence.findings.map((f) => (
+                      <div className="signal-finding" key={f.title}>
+                        <b>{f.title}</b>
+                        <span className="small">
+                          {' '}
+                          ·{' '}
+                          {f.kind === 'gap'
+                            ? 'Evidence gap'
+                            : 'Calculated from source data'}
+                        </span>
+                        <p>{f.detail}</p>
+                      </div>
+                    ))}
+                    <h3>Cross-platform evidence</h3>
+                    <p>{detail.intelligence.crossCheck.detail}</p>
+                    <p className="small">
+                      Checked {date(detail.intelligence.crossCheck.observedAt)}{' '}
+                      · bounded search, not whole-market coverage
+                    </p>
+                    {detail.intelligence.forecasts.map((f) => (
+                      <article className="signal-finding" key={f.id}>
+                        <b>
+                          <a
+                            href={f.sourceUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {f.title} ↗
+                          </a>
+                        </b>
+                        <p>
+                          <strong>{pct(f.probability)}</strong> · Manifold ·
+                          play-money crowd forecast
+                        </p>
+                        <p className="small">
+                          {f.match === 'same_title'
+                            ? 'Same question title; rules unverified'
+                            : 'Related question; not an equivalent contract'}{' '}
+                          · Closes {date(f.closesAt)} · Updated{' '}
+                          {date(f.updatedAt)}
+                        </p>
+                        {f.reasons.map((reason) => (
+                          <p className="warning-line" key={reason}>
+                            {reason}
+                          </p>
+                        ))}
+                        <details>
+                          <summary>Compare resolution criteria</summary>
+                          <p className="rules">
+                            {f.rules ||
+                              'No resolution criteria retrieved. Verify at the source.'}
+                          </p>
+                        </details>
+                      </article>
+                    ))}
+                  </section>
+                )}
                 <div className="quote-grid">
                   <div>
                     <span>Best buy · Yes</span>
@@ -592,8 +661,8 @@ export default function MarketWorkspace({ signedIn }: { signedIn: boolean }) {
                   <div className="eyebrow">TICKRR PRO</div>
                   <h3>Understand what the evidence says.</h3>
                   <p>
-                    A concise research note based on the prices, rules, and data
-                    checked above.
+                    An evidence assessment of market movement, trading friction,
+                    related forecasts, and contradictions in resolution rules.
                   </p>
                   {signedIn ? (
                     <Button
@@ -610,6 +679,19 @@ export default function MarketWorkspace({ signedIn }: { signedIn: boolean }) {
                   {analysis && (
                     <div className="analysis-text">
                       {analysis}
+                      <div className="analysis-sources">
+                        {analysisSources.map((source, i) => (
+                          <p key={i}>
+                            <a
+                              href={source.url}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              {source.title} ↗
+                            </a>
+                          </p>
+                        ))}
+                      </div>
                       <p className="small">
                         AI-generated analysis · OpenAI Luna · Verify the
                         sources.
